@@ -3,7 +3,7 @@ title: "Advanced Visualization in R Term Project"
 output: html_document
 ---
 414333 - Özgür Polat
-417121 - H. Can Minareci
+417121 - Hüseyin Can Minareci
 
 
 Introduction
