@@ -13,3 +13,5 @@ spare.time <- read.csv("Data/churn.csv", sep = ',')
 
 # Read libs
 head(spare.time)
+
+#ARKADASLAR BU ISI DE CANLA YAPICAZ
