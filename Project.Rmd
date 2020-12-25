@@ -1,25 +1,52 @@
 ---
 title: "Advanced Visualization in R Term Project"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 414333 - Özgür Polat
 417121 - Hüseyin Can Minareci
 
-
-Introduction
-
-
-Data Definition
-
-Exploratory Data Analysis
-
 Library Imports
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gridExtra)
+library(cowplot)
+library(ggforce)
+library(GGally)
 ```
 
 Data Import
 ```{r}
+churn <- read.csv("Data/churn.csv", sep = ',')
+```
+
+
+
+# Introduction
+
+
+# Data Definition
+
+
+# Exploratory Data Analysis
+
+## Plot 1
+```{r}
+ggplot(churn, aes(x = Credit_Limit, fill = Education_Level)) + 
+  geom_histogram(data = churn[,-6], fill = "grey", alpha = .5) + 
+  geom_histogram(colour = "black") +
+  facet_wrap(~ Education_Level) + 
+  guides(fill = FALSE)
+  
 
 ```
 
+
+## Plot 2
+
+## Plot 3
+
+# Conclusion
