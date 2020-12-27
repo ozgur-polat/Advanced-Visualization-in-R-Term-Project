@@ -1,0 +1,82 @@
+---
+title: "Advanced Visualization in R Term Project"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+414333 - Özgür Polat \
+417121 - Hüseyin Can Minareci
+
+Library Imports
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(gridExtra)
+library(cowplot)
+library(ggforce)
+library(GGally)
+library(ggpubr)
+```
+
+Data Import
+```{r}
+churn <- read.csv("Data/churn.csv", sep = ',')
+churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unknown"))
+```
+
+Data Preparation
+
+```{r}
+colSums(churn[,c(6,7,8)]=="Unknown")
+## I think we should remove those Unknowns
+churnNN <- drop_na(churnN)
+```
+
+```{r}
+prop.table(table(churn$Attrition_Flag))
+```
+```{r}
+prop.table(table(churnNN$Attrition_Flag))
+```
+After dropping Unknowns we are having very similar distribution and I would say lets drop it in order to have better EDA 
+
+# Introduction
+
+
+# Data Definition
+
+
+# Exploratory Data Analysis
+
+## Plot 1
+```{r}
+ggplot(churnNN, aes(x = Credit_Limit, fill = Education_Level)) + 
+  geom_histogram(data = churn[,-6], fill = "grey", alpha = .5) + 
+  geom_histogram(colour = "black") +
+  facet_wrap(~ Education_Level) + 
+  guides(fill = FALSE)
+  
+
+```
+
+
+```{r}
+unique(churnNN$Education_Level)
+```
+
+## Plot 2
+
+```{r}
+my_comp <- list( c("Uneducated", "High School"), c("High School", "College"), c("College", "Graduate"), c("Graduate", "Post-Graduate"), c("Post-Graduate", "Doctorate") )
+
+ggviolin(churnNN, x = "Education_Level", y = "Total_Revolving_Bal",
+          fill = "Education_Level", palette = "jco",
+          add = "boxplot", add.params = list(fill = "white"))  + 
+  stat_compare_means(method = 'anova') +
+  stat_compare_means(comparisons = my_comp)
+```
+
+## Plot 3
+
+# Conclusion
