@@ -1,0 +1,461 @@
+###########################################################################
+#				         Applied Finance
+#     Statistical tools in algorithmic trading
+#					          2020/2021
+#         course intructor: Mateusz Buczy?ski
+# 	          author: dr Piotr Wojcik
+#		University of Warsaw, Faculty of Economic Sciences                
+###########################################################################
+# 2. Applying simple strategies 
+###########################################################################
+
+# install new packages
+
+install.packages("chron") # e.g. for times() function
+install.packages("TTR") # eg. efficient SMA(), EMA() functions
+install.packages("caTools") # eg. efficient runmean(), runsd(), runquantile()
+install.packages("lubridate") # work with dates and times easily
+install.packages("lattice") # for levelplot()
+install.packages("grDevices") # for colorRampPalette
+install.packages("rbenchmark")
+
+# lets load needed packages
+library(xts)
+library(quantmod)
+library(tseries) 
+library(chron)
+library(TTR)
+library(caTools)
+library(lubridate)
+library(dplyr)
+library(lattice)
+library(grDevices)
+library(rbenchmark)
+
+# lets change the LC_TIME option to English
+Sys.setlocale("LC_TIME", "English")
+
+# setting the working directory
+
+setwd("...")
+
+# lets create a simple function calculating Sharpe ratio # WHAT IS THIS
+
+mySR <- function(x, # x = series of returns
+                 scale) # scaling parameter = Nt
+{
+  sqrt(scale) * mean(coredata(x), na.rm = T) / 
+    sd(coredata(x), na.rm = T)
+} # end of definition
+
+
+# lets import the data on currencies (futures contracts)
+load("currencies.RData")
+
+# data includes
+# E6 - price (weighted bid-and-ask average) of futures for EUR/USD
+# J6 - price (weighted bid-and-ask average) of futures for JPY/USD
+# A6 - price (weighted bid-and-ask average) of futures for AUD/USD
+# C6 - price (weighted bid-and-ask average) of futures for CAD/USD
+# B6 - price (weighted bid-and-ask average) of futures for GPB/USD
+
+# 1 minute data for a single month (2013-08)
+
+# specifications
+# E6 - point value = 125 000$, transaction cost = 15$
+# J6 - point value = 12 500 000$, transaction cost = 15$
+# A6 - point value = 100 000$, transaction cost = 15$
+# C6 - point value = 100 000$, transaction cost = 15$
+# B6 - point value = 62 500$, transaction cost = 15$
+
+# checking the structure of the data.frame
+head(currencies)
+tail(currencies)
+
+nrow(currencies)
+
+# function day() from lubridate applied to xts object
+# returns a day of the month - lets check which days we have
+
+table(day(currencies))
+
+# these currencies are traded round the clock (without weekends)
+# and with the break between 17:00 and 18:00 (New York time)
+
+currencies["T16:55/T18:05"]["2013-08-01/2013-08-01"]
+
+
+# lets use the first half of the month (days 1-16) 
+# as the training dataset and the rest (days 17-31)
+# as the test data
+
+currencies_train <- currencies[day(currencies) < 17,]
+currencies_test <- currencies[day(currencies) >= 17,]
+
+
+# lets select E6 (EUR/USD) as the example
+E6 <- currencies_train$E6
+
+
+############################################################################
+# common assumptions
+
+# 1
+# we do not use the first five minutes after the break (18:01-18:05)
+# and last five minutes before the break (16:56-17:00) in the calculations
+# (at the beginning and end of the trading day there might be some 
+# extreme price movements -- remember U-shaped volatility -- we want to 
+# avoid the influence of outliers on our strategy)
+
+# lets put missing values there - it is easy and efficient 
+# for xts objects
+
+E6["T18:01/T18:05"] <- NA
+E6["T16:56/T17:00"] <- NA
+
+# 2
+# we do not trade within the first fifteen minutes after the break
+# (18:00-18:15) and last fifteen minutes before the break (16:46-17:00).
+# Lets also assume we LEAVE ALL POSITIONS before the break starts.
+# so finally we do not want to trade between 16:46 and 18:15 and leave 
+# a position (if any) the latest at 16:45.
+
+# lets create an xts object "pos_flat" 
+# = 1 if position has to be = 0 
+# = 0 otherwise
+
+# first we fill it with 0s
+
+pos_flat <- xts(rep(0, nrow(E6)), index(E6))
+
+# pos_flat has the same time index as E6
+
+# we do not trade within the first fifteen minutes after the break (18:00-18:15)
+# and last fifteen minutes before the break (16:46-17:00).
+
+pos_flat["T16:46/T18:15"] <- 1
+
+# we also need to add 1s for weekends (Fri, 17:00 - Sun, 18:00)
+# so that we do not leave any open position for weekends
+# lets save the day of the week using wday() function
+# from the lubridate package (1=Sun, 2=Mon, 3=Tue,...,7=Sat)
+
+dweek_ <- wday(E6)
+
+head(dweek_)
+
+table(dweek_)
+
+# lets create a vector of times in a character format
+
+time_ <- substr(index(E6), 12, 19)
+
+# check how it looks
+
+head(time_)
+
+# function times() from teh chron package 
+# converts character value of time into 
+# the object of class = times in which 
+# time can be easily compared
+
+times(head(time_))
+
+class(times(head(time_)))
+
+times(head(time_)) < times("00:02:00")
+
+# lets use it to define being flat on the weekend
+
+pos_flat[
+  (dweek_ == 6 & times(time_) > times("17:00:00")) |     # end of Friday
+    (dweek_ == 7) |                                      # whole Saturday
+    (dweek_ == 1 & times(time_) <= times("18:00:00")),   # beginning of Sunday
+         ] <- 1 
+
+
+#################################################################################
+# simple momentum strategy: volatility breakout model
+
+# an universal function for position calculation 
+# in a basic volatility breakout model
+
+source("function_positionR.R")
+
+# function positionR()
+# requires 5 arguments:
+# - signal = strategy signal (price or its moving average),
+# - lower = lower entry/exit threshold,
+# - upper = lower entry/exit threshold,
+# - pos_flat = 0/1 vector, when 1 means that position should be flat,
+# - strategy = "mom" or "mr" for momentum or mean-reverting respectively
+
+# as a strategy signal we use some fastEMA
+# and breakouts are slowEMA +/- m * std
+
+# sample parameters
+signalEMA <- 10 # 10 minutes as half-life for fastEMA
+slowEMA <- 90   # 90 minutes as half-life for slowEMA
+volat.sd <- 60  # 60 minutes as memory for standard deviation
+m_ <- 2         # volatility multiplier for breakout model
+
+
+# caution !
+# EMA(x, n) function (package TTR) does not accept NA's 
+# in the middle of the series !!!
+
+EMA(E6$E6, signalEMA) %>% 
+  head()
+
+# for the purpose of EMA calculation for prices 
+# lets fill missings with last non-missing
+# this is done with na.locf() - Last Observation Carried Forward
+
+EMA(E6$E6[!is.na(E6$E6)], signalEMA) %>% 
+  head(signalEMA + 5) %>% nrow()
+
+
+EMA(na.locf(E6$E6), signalEMA) %>% 
+  head(signalEMA + 5)
+
+
+EMA(E6$E6[!is.na(E6$E6)], signalEMA) %>% 
+  nrow()
+
+EMA(na.locf(E6$E6), signalEMA) %>% 
+  nrow()
+
+# for large datasets calculation on simple vectors
+# is faster than on xts objects - we can use
+# coredata() function for conversion
+
+
+EMA(coredata(na.locf(E6$E6)), signalEMA) %>% 
+  head()
+
+
+
+benchmark(EMA(coredata(na.locf(E6$E6)), signalEMA),
+          EMA(na.locf(E6$E6), signalEMA),
+          replications = 1e3)
+
+
+
+# but should remember that it also returns a vector
+# (not xts object)
+
+# runsd() from caTools allows to efficiently calculate
+# running (rolling) standard deviation - based on 
+# a defined number of last observations
+
+# basic syntax:
+# runsd(x,        # vector of values
+#       k,        # memory of std
+#       endrule,  # what to return if calculation not possible
+#       align)    # how to align the result
+
+# example
+
+check <- rnorm(20)
+
+runsd(check,
+      3, 
+      endrule = "NA", 
+      align = "right")
+
+runsd(check,
+      3, 
+      endrule = "NA", 
+      align = "left")
+
+runsd(check,
+      3, 
+      endrule = "NA", 
+      align = "center")
+
+# if calculation should be based on historical data
+# the only sensible aligment is "right"
+
+
+
+# lets create a vector with time index for the data
+# processed (not to generate it in every iteration 
+# of the loop)
+
+index_ <- index(E6)
+
+# lets use this inside a loop
+# and also do not apply the same calculation twice
+# (store intermediate objects for EMA and runsd)
+
+for(signalEMA in c(10, 15, 20, 30, 45)) {
+  for(slowEMA in c(60, 90, 120, 150, 180)) {
+    for(volat.sd in c(60, 90, 120)) {
+      for(m_ in c(1, 2, 3)) {
+        
+        message(paste0("signalEMA = ", signalEMA,
+                       ", slowEMA = ", slowEMA,
+                       ", volat.sd = ", volat.sd,
+                       ", m_ = ", m_)) 
+        
+        # calculating elements of the strategy
+        
+        # here calculation on coredata() makes a difference
+        # signal
+        signalEMA.values <- EMA(na.locf(coredata(E6$E6)), 
+                                signalEMA)
+        # basis for volatility bands
+        slowEMA.values <- EMA(na.locf(coredata(E6$E6)), 
+                              slowEMA)
+        # size of volatility bands
+        volat.sd.values <- runsd(na.locf(coredata(E6$E6)), 
+                                 volat.sd, 
+                                 endrule = "NA", 
+                                 align = "right")
+        
+        # position for momentum strategy
+        pos.mom <- positionR(signal = signalEMA.values,
+                             lower = slowEMA.values - m_ * volat.sd.values,
+                             upper = slowEMA.values + m_ * volat.sd.values,
+                             pos_flat = coredata(pos_flat),
+                             strategy = "mom" # important !!!
+                             )
+        
+        # gross pnl
+        pnl.gross.mom <- ifelse(is.na(pos.mom * diff.xts(E6$E6)),
+                                0, pos.mom * diff.xts(E6$E6) * 125000 # point value for E6
+                                )
+        
+        # nr of transactions - the same for mom and mr
+        ntrans <- abs(diff.xts(pos.mom))
+        ntrans[1] <- 0
+        
+        # net pnl
+        pnl.net.mom <- pnl.gross.mom - ntrans * 15 # 15$ per transaction of E6
+        
+        # aggregate pnls and # transactions to daily
+        
+        # lets find endpoints of days
+        ends_ <- endpoints(E6, "days")
+        
+        # aggregating gross pnl 
+        pnl.gross.mom.d <- period.apply(pnl.gross.mom, 
+                                        INDEX = ends_, 
+                                        FUN = function(x) sum(x, na.rm = TRUE))
+        # aggregating net pnl 
+        pnl.net.mom.d <- period.apply(pnl.net.mom, 
+                                      INDEX = ends_,
+                                      FUN = function(x) sum(x, na.rm = TRUE))
+        
+        # calculate summary measures
+        gross.SR.mom <- mySR(pnl.gross.mom.d, scale = 252)
+        net.SR.mom <- mySR(pnl.net.mom.d, scale = 252)
+        gross.PnL.mom <- sum(pnl.gross.mom.d, na.rm = T)
+        net.PnL.mom <- sum(pnl.net.mom.d, na.rm = T)
+        
+        # summary of a particular strategy
+        summary_ <- data.frame(signalEMA = signalEMA,
+                               slowEMA = slowEMA,
+                               volat.sd = volat.sd,
+                               m = m_,
+                               period = "2013-08",
+                               gross.SR.mom,
+                               net.SR.mom,
+                               gross.PnL.mom,
+                               net.PnL.mom,
+                               stringsAsFactors = FALSE
+        )
+        
+        # putting all summaries together
+        if(!exists("summary.all.breakout")) summary.all.breakout <- summary_ else
+          summary.all.breakout <- rbind(summary.all.breakout, summary_)
+        
+        # deleting working files not needed any more
+        rm(gross.SR.mom, net.SR.mom, gross.PnL.mom, net.PnL.mom,
+           pnl.gross.mom.d, pnl.net.mom.d,
+           pnl.gross.mom, pnl.net.mom,
+           pos.mom, ends_, summary_,
+           signalEMA.values, slowEMA.values, volat.sd.values
+        )
+        
+      } # end of loop for m_
+    } # end of loop for volatility  
+  } # end of loop for slowEMA
+} # end of loop for signal
+
+
+# lets order strategies according to decreasing net.SR.mom
+
+summary.all.breakout %>% 
+  arrange(desc(net.SR.mom)) %>% 
+  head(10)
+
+
+
+# lets do some sensitivity analysis with the use 
+# of the heatmap graph for best signalEMA = 10 
+# and slowEMA = 150
+
+
+# net.SR.mom
+levelplot(net.SR.mom ~ as.factor(m) * as.factor(volat.sd), # formula
+          data = summary.all.breakout %>% 
+            dplyr::filter(signalEMA == 10, 
+                          slowEMA == 150),
+          xlab = "volatility multiplier",
+          ylab = "volatility memory",
+          main = "net Sharpe ratio",
+          # we create a color palette from red to green (by white)
+          col.regions = colorRampPalette(c("red", "white", "green"))
+          )
+
+
+
+# net.PnL.mom
+levelplot(net.PnL.mom ~ as.factor(m) * as.factor(volat.sd), # formula
+          data = summary.all.breakout %>% 
+            dplyr::filter(signalEMA == 10, 
+                          slowEMA == 150),
+          xlab = "volatility multiplier",
+          ylab = "volatility memory",
+          main = "net Profit and Loss",
+          # we create a color palette from red to green (by white)
+          col.regions = colorRampPalette(c("red", "white", "green"))
+          )
+
+
+
+
+#######################################################################
+# Exercises 2
+
+# Exercise 2.1
+# Check the performance of the same strategy on the test data.
+# Are 5 top performing combinations still profitable?
+# How test net SR differs from train net SR?
+# Use plots to verify sensitivity of results to parameters.
+
+
+
+
+# Exercise 2.2
+# Perform similar analyses of a momentum strategy for another currency
+# (other than E6) use volatility breakout model -- check different 
+# SMAs and EMAs (function SMA() has the same syntax and requirements 
+# as EMA()); use MORE combinations of parameters.
+# Are the conclusions on train and test data similar as for E6?
+
+
+
+
+# Exercise 2.3 (*)
+# Perform analyses of a MEAN-REVERTING strategy for the SPREAD
+# between Canadian dollar C6 and Australian dollar A6 
+# (take the simplest form: C6-A6).
+# !!! Remember to use a correct option 'strategy = "mr"
+# and apply pnl calculation of both sides of the spread.
+# !!! Remember that transactional costs are ALWAYS positive
+# irrespectively whether you take long or short position.
+
+
+
