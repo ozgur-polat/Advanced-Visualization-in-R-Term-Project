@@ -78,6 +78,16 @@ prop.table(table(churnNN$Attrition_Flag))
 After dropping Unknowns we are having very similar distribution and I would say lets drop it in order to have better EDA 
 
 
+```{r}
+ifelse(churnNN$Attrition_Flag=="Attrited Customer", 1, 0)
+
+churnNN$Attrition_Flag <- ifelse(churnNN$Attrition_Flag=="Attrited Customer", 1, 0)
+churnNN$CLIENTNUM <- NULL
+
+```
+
+
+
 ## Exploratory Data Analysis
 
 ### Plot 1
