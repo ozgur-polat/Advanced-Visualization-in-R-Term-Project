@@ -42,7 +42,9 @@ prop.table(table(churnNN$Attrition_Flag))
 After dropping Unknowns we are having very similar distribution and I would say lets drop it in order to have better EDA 
 
 # Introduction
+With more and more consumers abandoning their credit card programs, a manager at the bank is concerned. They would really appreciate if one could foresee who would be churned for them so that they can proactively go to the consumer and offer better value to them and turn the decisions of customers in the opposite direction. Thus, they aggregated this dataset and the source we acquired it received it from https://leaps.analyttica.com/ 
 
+Here in this project we will try to enlight the big picture a bit more with the capabilities we gained thanks to the Advanced Visualization in R course in Faculty of Economical Sciences at the University of Warsaw.
 
 # Data Definition
 
