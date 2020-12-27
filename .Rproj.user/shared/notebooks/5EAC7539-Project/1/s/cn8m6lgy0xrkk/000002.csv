@@ -1,0 +1,2 @@
+"0","churn <- read.csv(""Data/churn.csv"", sep = ',')"
+"0","churnN <- read.csv(""Data/churn.csv"", sep = ',', na.strings = c(""NA"", ""N/A"", ""Unknown""))"

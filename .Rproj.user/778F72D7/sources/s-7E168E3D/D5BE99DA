@@ -1,24 +1,24 @@
 {
-    "id": "D3159299",
+    "id": "D5BE99DA",
     "path": "C:/Users/ozgrp/Desktop/Drive/UW/Adv Visualization/Project/Advanced-Visualization-in-R-Term-Project/Project.Rmd",
     "project_path": "Project.Rmd",
     "type": "r_markdown",
-    "hash": "151315418",
+    "hash": "1901169300",
     "contents": "",
     "dirty": false,
-    "created": 1608748598949.0,
+    "created": 1609097424886.0,
     "source_on_save": false,
-    "relative_order": 1,
+    "relative_order": 2,
     "properties": {
-        "cursorPosition": "46,214",
-        "scrollLine": "8"
+        "cursorPosition": "146,0",
+        "scrollLine": "106"
     },
     "folds": "",
-    "lastKnownWriteTime": 1609087266,
+    "lastKnownWriteTime": 1609098237,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1609087266138,
+    "last_content_update": 1609098237434,
     "read_only": false,
     "read_only_alternatives": []
 }

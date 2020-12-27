@@ -1,0 +1,5 @@
+"0","ggplot(churnNN, aes(x = Credit_Limit, fill = Education_Level)) + "
+"0","  geom_histogram(data = churn[,-6], fill = ""grey"", alpha = .5) + "
+"0","  geom_histogram(colour = ""black"") +"
+"0","  facet_wrap(~ Education_Level) + "
+"0","  guides(fill = FALSE)"

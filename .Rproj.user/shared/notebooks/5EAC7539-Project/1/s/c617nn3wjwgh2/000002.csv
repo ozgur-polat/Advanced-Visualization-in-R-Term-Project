@@ -1,0 +1,7 @@
+"0","my_comp <- list( c(""Uneducated"", ""High School""), c(""High School"", ""College""), c(""College"", ""Graduate""), c(""Graduate"", ""Post-Graduate""), c(""Post-Graduate"", ""Doctorate"") )"
+"0",""
+"0","ggviolin(churnNN, x = ""Education_Level"", y = ""Total_Revolving_Bal"","
+"0","          fill = ""Education_Level"", palette = ""jco"","
+"0","          add = ""boxplot"", add.params = list(fill = ""white""))  + "
+"0","  stat_compare_means(method = 'anova') +"
+"0","  stat_compare_means(comparisons = my_comp)"

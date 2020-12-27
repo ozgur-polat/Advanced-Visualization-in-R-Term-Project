@@ -1,0 +1,240 @@
+#---------------------------------------------------------#
+#               Advanced Visualization in R               #
+#                   Piotr Ćwiakowski                      #
+#             Faculty of Economic Sciences UW             #
+#                 Trend and smoothing                     #
+#---------------------------------------------------------#
+
+# Set the working directory
+setwd('...')
+
+# Read database
+spare.time <- read.csv("Data/free_time.csv", sep = ',')
+
+# Read libs
+library(tidyverse)
+
+# 1. Introduction ---------------------------------------------------------
+
+# `geom_smooth()` is a very useful geometry which can often be used along with
+# the point plot. This geometry generates a trend line which can be estimated
+# either via the linear regression, or some other, more complicated, function.
+
+# The default call of this geometry is simple:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth()
+
+# Trend is estimated with GAM model. Nice article about this model is available 
+# here:
+# https://multithreaded.stitchfix.com/assets/files/gam.pdf
+# https://multithreaded.stitchfix.com/blog/2015/07/30/gam/
+
+# different algorithm is used for small samples:
+ggplot(data = spare.time[1:500,], aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth()
+
+# Loess is the local polynomial fitting.
+# The idea of this method is that the trend for the whole sample determined from
+# trends of homogeneous subsamples into which the sample is split by
+# e.g. the `k` nearest neighbours algorithm.
+# More on that [here](https://en.wikipedia.org/wiki/Local_regression).
+
+# If you are interested in obtaining a more closely fit trend then you can use
+# the `span` argument, but only in loess algorithm (accepts values between 0 and 1, 
+# the closer to 0 the curve is more flexible):
+ggplot(data = spare.time[1:500,], aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(span = 1)
+
+# One of the other options is the `method` argument. Using it, one can define
+# a method which will be used to obtain the trend curve, e.g. a line with
+# coefficients obtained from the linear regression:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+
+# 2. Defining formula -----------------------------------------------------
+
+# We can define the `formula` argument which will allow us to define the functional 
+# form of the trend::
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, size = 1)
+
+# We can modify the functional form of the regression and try to fit the second order polynomial:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size = 1)
+
+# The `poly` function is very useful for polynomials of higher degree:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point()+
+  geom_smooth(method = "lm",
+              formula = y ~ poly(x, 4) # first argument - variable, second - polynomial degree
+              , size = 1)
+
+# Now let's try to fit a square root and log functions:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              formula = y ~ log(x)
+              , size = 1)
+
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              formula = y ~ sqrt(x)
+              , size = 1)
+
+# 3. Additional parameters -----------------------------------------------------
+
+# In `geom_smooth` we also can use the following arguments:
+
+# * _linetype_, (what would be the type of the displayed trend line),
+# * _fill_ (allows to control the display of the standard error),
+# * _alpha_ (allows to control the transparency of display of the standard error range).
+ggplot(data = spare.time, aes(x = age, y = earnings, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              formula = y ~ poly(x, 2) # first argument - variable, second - polynomial degree
+              , fill = "green"
+              , col = "darkgreen"
+              , alpha = 0.2)
+
+# 4. Grouping and faceting ------------------------------------------------
+
+# The trend lines can be displayed in subgroups, e.g. by coloring points along the lines:
+ggplot(data = spare.time, aes(x = age, y = earnings, color = education)) +
+  geom_point() +
+  geom_smooth()
+
+# or just lines:
+ggplot(data = spare.time, aes(x = age, y = earnings)) +
+  geom_point()+
+  geom_smooth(aes(color = education), se = FALSE, size = 2)
+
+# We can also use the `facet_wrap` function to split plot into multiple subplots:
+ggplot(data = spare.time, aes(x = age, y = earnings)) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~education)
+
+# 5. glm() and geom_smooth() ----------------------------------------------
+
+# Ultimately, we can also fit any other function, e.g. a logistic model.
+# In the example below we will try to model the probability of respondent
+# in a given age having children in household:
+ggplot(data = spare.time, aes(x = age, y = any_children)) +
+  geom_point() +
+  geom_smooth(method = 'glm', method.args = list(family = binomial(link = 'logit')),
+              formula = y ~ x)
+
+ggplot(data = spare.time, aes(x = age, y = any_children, color = education)) +
+  geom_point() +
+  geom_smooth(method = 'glm', method.args = list(family = binomial(link = 'logit')),
+              formula = y ~ x)
+
+# 6. Printing formula on the graph -------------------------------------------
+
+install.packages('ggpmisc')
+library(ggpmisc)
+
+# Thanks to the ggpmisc package, we can print estimated formula of trend on the
+# graph:
+
+formula <- y ~ poly(x, 3, raw = TRUE)
+formula2 <- y ~ poly(x, 2, raw = TRUE)
+
+ggplot(data = spare.time, aes(x = age, earnings)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
+               formula = formula, parse = TRUE,
+               label.x = 35, label.y = 3500, color = 'blue') +
+  geom_smooth(method = "lm", formula = formula2, color = 'red') +
+  stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
+               formula = formula2, parse = TRUE,
+               label.x = 0, label.y = 3300, color = 'red')
+
+# More information: https://docs.r4photobiology.info/ggpmisc/reference/stat_poly_eq.html
+
+# 7. ggalt and splines ----------------------------------------------------
+
+# Another proposition of estimating trend is available in ggalt package:
+library(ggalt)
+
+set.seed(1492)
+dat <- data.frame(x=c(1:10, 1:10, 1:10),
+                  y=c(sample(15:30, 10), 2*sample(15:30, 10), 4*sample(15:30, 10)),
+                  group=factor(c(rep(1, 10), rep(2, 10), rep(3, 10)))
+)
+
+ggplot(dat, aes(x, y, group=group, color=group)) +
+  geom_point() +
+  geom_line()
+
+ggplot(dat, aes(x, y, group=group, color=factor(group))) +
+  geom_point() +
+  # geom_line() +
+  geom_smooth(se=FALSE, linetype="dashed", size=0.5)
+
+ggplot(dat, aes(x, y, group=group, color=factor(group))) +
+  geom_point(color="black") +
+  geom_smooth(se=FALSE, linetype="dashed", size=0.5) +
+  geom_xspline(size=0.5)
+
+ggplot(dat, aes(x, y, group=group, color=factor(group))) +
+  geom_point(color="black") +
+  geom_smooth(se=FALSE, linetype="dashed", size=0.5) +
+  geom_xspline(spline_shape=-1, size=0.5)
+
+ggplot(dat, aes(x, y, group=group, color=factor(group))) +
+  geom_point(color="black") +
+  geom_smooth(se=FALSE, linetype="dashed", size=0.5) +
+  geom_xspline(spline_shape=1, size=0.5)
+
+ggplot(dat, aes(x, y, group=group, color=factor(group))) +
+  geom_point(color="black") +
+  geom_smooth(se=FALSE, linetype="dashed", size=0.5) +
+  geom_xspline(spline_shape=0, size=0.5)
+
+# More information: https://github.com/hrbrmstr/ggalt
+
+# 8. Excercises ----------------------------------------------------------------
+
+# 1. Investigate the dependance of time of sleep vs the respondent's age.
+# Compare the results of people with a different number of children and put
+# the subsequent plots one next to each other. Mark the points on different
+# plots using different colours. Prepare the investigation using first
+# 500 observations from the database.
+
+
+
+# 2. Create a point plot showing a dependance between the amount of time spent
+# on working and the average weekly salary for respondents who work more than
+# 0 minutes per day and earn more than 0 USD per week.
+# Add a trend line to the plot. Then, check if trends differ for:
+
+# a) day of week when the respondent was surveyed,
+# b) respondent's gender,
+# c) respondent's education level.
+
+# You can compare the trends either on 3 separate plots or a single multiplot.
+
+# 3. Import Walmart datasets. Estimate trend for given time series, e. g. weekly 
+# sales or temperature. Don't forget to aggregate data first!!
+
+
+# 4. Import dataset mpg:
+data(mpg, package="ggplot2")
+
+# Then pick four favourites manufucturers and plot for them scatterplot, where 
+# disp variable will be mapped on X, cty on y. Next:
+
+# a. Estimate and plot linear trend for whole subset and for each group
+# b. Try to plot formula for equations on the graph. Does it works color aesthetic?
+# Does it work with faceting?
+

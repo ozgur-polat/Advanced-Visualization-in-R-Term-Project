@@ -8,8 +8,41 @@ output:
 414333 - Özgür Polat \
 417121 - Hüseyin Can Minareci
 
-Library Imports
-```{r setup, include=FALSE}
+## Introduction
+With more and more consumers abandoning their credit card programs, a manager at the bank is concerned. They would really appreciate if one could foresee who would be churned for them so that they can proactively go to the consumer and offer better value to them and turn the decisions of customers in the opposite direction. Thus, they aggregated this dataset and the source we acquired it received it from https://leaps.analyttica.com/ 
+
+Here in this project we will try to enlight the big picture a bit more with the capabilities we gained thanks to the Advanced Visualization in R course in Faculty of Economical Sciences at the University of Warsaw.
+
+## Data Definition
+It is the best to start with understanding the variables we have and their definitions.
+
+* **CLIENTNUM**: Client number. Unique identifier for the customer holding the account
+* **Attrition_Flag**: Internal event (customer activity) variable - if the account is closed then 1 else 0
+* **Customer_Age**: Demographic variable - Customer's Age in Years
+* **Gender**: Demographic variable - M=Male, F=Female
+* **Dependent_count**: Demographic variable - Number of dependents
+* **Education_Level**: Demographic variable - Educational Qualification of the account holder (example: high school, college graduate, etc.)
+* **Marital_Status**: Demographic variable - Married, Single, Divorced, Unknown
+* **Income_Category**: Demographic variable - Annual Income Category of the account holder (< $40K, $40K - 60K, $60K - $80K, $80K-$120K, > $120K, Unknown)
+* **Card_Category**: Product Variable - Type of Card (Blue, Silver, Gold, Platinum)
+* **Months_on_book**: Period of relationship with bank
+* **Total_Relationship_Count**:Total no. of products held by the customer
+* **Months_Inactive_12_mon**: No. of months inactive in the last 12 months
+* **Contacts_Count_12_mon**: No. of Contacts in the last 12 months
+* **Credit_Limit**: Credit Limit on the Credit Card
+* **Total_Revolving_Bal**:Total Revolving Balance on the Credit Card
+* **Avg_Open_To_Buy**: Open to Buy Credit Line (Average of last 12 months)
+* **Total_Amt_Chng_Q4_Q1**: Change in Transaction Amount (Q4 over Q1)
+* **Total_Trans_Amt**: Total Transaction Amount (Last 12 months)
+* **Total_Trans_Ct**: Total Transaction Count (Last 12 months)
+* **Total_Ct_Chng_Q4_Q1**: Change in Transaction Count (Q4 over Q1)
+* **Avg_Utilization_Ratio**: Average Card Utilization Ratio
+* **Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1**: Naive Bayes
+* **Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2**: Naive Bayes
+
+
+## Library Imports
+```{r}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(gridExtra)
@@ -19,13 +52,13 @@ library(GGally)
 library(ggpubr)
 ```
 
-Data Import
+## Data Import
 ```{r}
 churn <- read.csv("Data/churn.csv", sep = ',')
 churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unknown"))
 ```
 
-Data Preparation
+## Data Preparation
 
 ```{r}
 colSums(churn[,c(6,7,8)]=="Unknown")
@@ -41,17 +74,10 @@ prop.table(table(churnNN$Attrition_Flag))
 ```
 After dropping Unknowns we are having very similar distribution and I would say lets drop it in order to have better EDA 
 
-# Introduction
-With more and more consumers abandoning their credit card programs, a manager at the bank is concerned. They would really appreciate if one could foresee who would be churned for them so that they can proactively go to the consumer and offer better value to them and turn the decisions of customers in the opposite direction. Thus, they aggregated this dataset and the source we acquired it received it from https://leaps.analyttica.com/ 
 
-Here in this project we will try to enlight the big picture a bit more with the capabilities we gained thanks to the Advanced Visualization in R course in Faculty of Economical Sciences at the University of Warsaw.
+## Exploratory Data Analysis
 
-# Data Definition
-
-
-# Exploratory Data Analysis
-
-## Plot 1
+### Plot 1
 ```{r}
 ggplot(churnNN, aes(x = Credit_Limit, fill = Education_Level)) + 
   geom_histogram(data = churn[,-6], fill = "grey", alpha = .5) + 
@@ -67,7 +93,7 @@ ggplot(churnNN, aes(x = Credit_Limit, fill = Education_Level)) +
 unique(churnNN$Education_Level)
 ```
 
-## Plot 2
+### Plot 2
 
 ```{r}
 my_comp <- list( c("Uneducated", "High School"), c("High School", "College"), c("College", "Graduate"), c("Graduate", "Post-Graduate"), c("Post-Graduate", "Doctorate") )
@@ -79,6 +105,22 @@ ggviolin(churnNN, x = "Education_Level", y = "Total_Revolving_Bal",
   stat_compare_means(comparisons = my_comp)
 ```
 
-## Plot 3
+### Plot 3
 
-# Conclusion
+```{r}
+library(ggcorrplot)
+churn_numeric <- select_if(churnNN, is.numeric)
+
+head(churn_numeric)
+
+corr <- churn_numeric %>% 
+  select(1:15) %>% 
+  cor()
+
+
+corrplot(corr, type="lower")
+
+```
+
+
+## Conclusion
