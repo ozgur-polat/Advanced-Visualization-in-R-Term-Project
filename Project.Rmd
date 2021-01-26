@@ -42,7 +42,7 @@ It is the best to start with understanding the variables we have and their defin
 
 
 ## Library Imports
-```{r}
+```{r,, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(gridExtra)
@@ -54,8 +54,9 @@ library(ggpubr)
 
 ## Data Import
 ```{r}
-churn <- read.csv("Data/churn.csv", sep = ',')
-churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unknown"))
+churn <- read.csv("Data/churn.csv", sep = ',', stringsAsFactors = TRUE)
+
+churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unknown"), stringsAsFactors = TRUE)
 ```
 
 ## Data Preparation
@@ -63,6 +64,7 @@ churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unk
 ```{r}
 colSums(churn[,c(6,7,8)]=="Unknown")
 ## I think we should remove those Unknowns
+
 churnNN <- drop_na(churnN)
 
 ## Drop ClientNum column here
@@ -76,37 +78,75 @@ prop.table(table(churn$Attrition_Flag))
 prop.table(table(churnNN$Attrition_Flag))
 ```
 After dropping Unknowns we are having very similar distribution and I would say lets drop it in order to have better EDA 
+```{r}
 
+summary(churn)
+
+```
 
 ```{r}
-ifelse(churnNN$Attrition_Flag=="Attrited Customer", 1, 0)
+### I don't remember why we did Attrition_Flag 0-1??? Doesn't make sense now so I comment it out if you will need uncomment line 91 and tell me for what we are gonna use it.
+# If customer left the bank 1 if stayed 0
 
-churnNN$Attrition_Flag <- ifelse(churnNN$Attrition_Flag=="Attrited Customer", 1, 0)
+# churnNN$Attrition_Flag <- ifelse(churnNN$Attrition_Flag=="Attrited Customer", 1, 0)
+
+# dropping the columns which is not useful for our analysis
 churnNN$CLIENTNUM <- NULL
+churnNN$Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1 <- NULL
+churnNN$Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2 <- NULL
 
 ```
 
 
+```{r}
+
+summary(churnNN)
+
+```
+
+
+```{r}
+# Ordering factor from smaller to bigger in order to have it in correct order in plots
+
+churnNN$Income_Category <- ordered(churnNN$Income_Category, levels = c("Less than $40K", "$40K - $60K", "$60K - $80K", "$80K - $120K", "$120K +"))
+churnNN$Education_Level <- ordered(churnNN$Education_Level, levels = c("Uneducated", "High School", "College", "Graduate","Post-Graduate",  "Doctorate"))
+
+
+```
 
 ## Exploratory Data Analysis
 
+
 ### Plot 1
+
+
+
 ```{r}
-ggplot(churnNN, aes(x = Credit_Limit, fill = Education_Level)) + 
-  geom_histogram(data = churn[,-6], fill = "grey", alpha = .5) + 
+
+ggplot(churnNN, aes(x = Credit_Limit, fill = Income_Category)) + 
+  geom_histogram(data = churnNN[,-8], fill = "grey", alpha = .5) + 
   geom_histogram(colour = "black") +
-  facet_wrap(~ Education_Level) + 
+  facet_wrap(~ Income_Category) + 
+  guides(fill = FALSE)
+  
+
+```
+```{r}
+
+ggplot(churnNN, aes(x = Total_Revolving_Bal, fill = Attrition_Flag)) + 
+  geom_histogram(data = churnNN[,-1], fill = "grey", alpha = .5) + 
+  geom_histogram(colour = "black") +
+  facet_wrap(~ Attrition_Flag) + 
   guides(fill = FALSE)
   
 
 ```
 
 
-```{r}
-unique(churnNN$Education_Level)
-```
 
 ### Plot 2
+
+Explanation of this plot will be added...
 
 ```{r}
 my_comp <- list( c("Uneducated", "High School"), c("High School", "College"), c("College", "Graduate"), c("Graduate", "Post-Graduate"), c("Post-Graduate", "Doctorate") )
@@ -120,14 +160,14 @@ ggviolin(churnNN, x = "Education_Level", y = "Total_Revolving_Bal",
 
 ### Plot 3
 #### Correlation plot
-```{r}
+```{r, message=FALSE}
 library(heatmaply)
 library(plotly)
 library(ggcorrplot)
 churn_numeric <- select_if(churnNN, is.numeric)
 
 churn_ready_for_corr <- churn_numeric %>% 
-  select(1:15)
+  select(1:14)
 
 
 # Compute correlation coefficients
@@ -158,6 +198,38 @@ heatmaply_cor(
 )
 
 ```
+
+
+
+
+
+### PLot 4
+
+#### Cluster Analysis
+
+Placeholder
+
+```{r}
+# Clustering Variables
+
+clusterData <- churnNN[, c("Credit_Limit", "Total_Revolving_Bal")]
+
+clusters2 <- kmeans(clusterData, 3)
+
+
+palette(c("#E41A1C", "#377EB8", "#4DAF4A",
+          "#984EA3", "#FF7F00", "#FFFF33",
+          "#A65628", "#F781BF", "#999999"))
+
+par(mar = c(5.1, 4.1, 0, 1))
+plot(clusterData,
+     col = clusters2$cluster,
+     pch = 20, cex = 3)
+points(clusters2$centers, pch = 3, cex = 3, lwd = 3)
+
+
+```
+
 
 
 ## Conclusion
