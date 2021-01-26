@@ -9,7 +9,7 @@ output:
 417121 - Hüseyin Can Minareci
 
 ## Introduction
-With more and more consumers abandoning their credit card programs, a manager at the bank is concerned. They would really appreciate if one could foresee who would be churned for them so that they can proactively go to the consumer and offer better value to them and turn the decisions of customers in the opposite direction. Thus, they aggregated this dataset and the source we acquired it received it from https://leaps.analyttica.com/ 
+With more and more consumers abandoning their credit card programs, a manager at the bank is concerned. They would really appreciate if one could foresee who would be churned for them so that they can proactively go to the consumer and offer better value to them and turn the decisions of customers in the opposite direction. Thus, they aggregated this dataset and the source we acquired it received it from [here]( https://leaps.analyttica.com/ )
 
 Here in this project we will try to enlight the big picture a bit more with the capabilities we gained thanks to the Advanced Visualization in R course in Faculty of Economical Sciences at the University of Warsaw.
 
@@ -50,6 +50,7 @@ library(cowplot)
 library(ggforce)
 library(GGally)
 library(ggpubr)
+library(ggthemes)
 ```
 
 ## Data Import
@@ -61,12 +62,19 @@ churnN <- read.csv("Data/churn.csv", sep = ',', na.strings = c("NA", "N/A", "Unk
 
 ## Data Preparation
 
+explanation on the unknowns and they are baing removed.
+
 ```{r}
 colSums(churn[,c(6,7,8)]=="Unknown")
 ## I think we should remove those Unknowns
 
 churnNN <- drop_na(churnN)
 
+
+sum(is.na(churnNN))
+
+#new count is here
+count(churnNN)
 ## Drop ClientNum column here
 ## Make Attrition Flag 1-0
 ```
@@ -103,6 +111,11 @@ churnNN$Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mo
 summary(churnNN)
 
 ```
+```{r}
+#Total_Relationship_Count Months_Inactive_12_mon Contacts_Count_12_mon
+
+ggplot(churnNN,aes(y=Months_on_book   ,x= Contacts_Count_12_mon))+geom_point()
+```
 
 
 ```{r}
@@ -116,6 +129,85 @@ churnNN$Education_Level <- ordered(churnNN$Education_Level, levels = c("Uneducat
 
 ## Exploratory Data Analysis
 
+### Ozgurun Plotlari
+
+#### Pie Chart (Percentage of attried customers among the credit card type)
+```{r}
+# Ordering factor from smaller to bigger in order to have it in correct order in plots
+```
+
+
+```{r}
+ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers")+ theme(title = element_text(size=5))
+```
+
+
+
+```{r}
+sct <- ggplot(churnNN,aes(Customer_Age,Credit_Limit))+ geom_point() +geom_smooth()
+sct+theme_gdocs()
+```
+
+```{r}
+card_bar <- ggplot(data =churnNN, aes(x= Card_Category,fill= Attrition_Flag))+ geom_bar(position = 'dodge',width = 1)
+
+card_bar +theme_gdocs()
+```
+
+
+
+```{r}
+bar <-ggplot(data=subset(churnNN,Attrition_Flag=="Existing Customer"), aes(x='',y= "", fill=Income_Category)) +geom_bar(width = 1,stat = "identity")
+
+
+
+pie <- bar + coord_polar("y",start = 0)+theme_gdocs()
+
+pie
+
+edu  <-ggplot(data=subset(churnNN,Attrition_Flag=="Existing Customer"), aes(x="",y= "",fill=Education_Level )) +geom_bar(width = 1,stat = "identity")
+
+edu_card <- card_cat + coord_polar("y",start = 0)
+
+edu_card
+```
+
+#### Distribution of Age
+```{r}
+# Ordering factor from smaller to bigger in order to have it in correct order in plots
+
+ggplot(churnNN, aes(x=Customer_Age)) + geom_bar() +
+  scale_x_continuous(expand = c(0,0),limits= c(26,73), breaks= seq.int(26,73,3)) +
+  theme_classic()
+
+```
+
+
+#### Pyramid Plot (Age-Attried)
+```{r}
+#Data preparation for this plot:
+churnNN$Customer_Age_Ordered <- case_when(churnNN$Customer_Age > 60 ~ 'Over 60',
+                                          between(churnNN$Customer_Age, 20, 30 ) ~ '20-30',
+                                          between(churnNN$Customer_Age, 31, 40 ) ~ '31-40',
+                                          between(churnNN$Customer_Age, 41, 50 ) ~ '41-50',
+                                          between(churnNN$Customer_Age, 51, 60 ) ~ '51-60',
+                                          )
+
+```
+
+```{r}
+#ggplot(churnNN, aes(x = Card_Category, y = Customer_Age , fill = Gender)) + 
+#  geom_bar(subset = .(Gender == "F") = "identity", width = .6) +
+#  scale_y_discrete("Ahmet", labels = c('20-30', '31-40', '41-50', '51-60', 'Over 60')) 
+
+
+ggplot(data=churnNN,aes(x=Customer_Age_Ordered,fill=Attrition_Flag  )) + 
+  geom_bar(data=subset(churnNN,Attrition_Flag  =="Attrited Customer")) + 
+  geom_bar(data=subset(churnNN,Attrition_Flag  =="Existing Customer"),aes(y=..count..*(-1))) + 
+  coord_flip()
+  
+
+```
 
 ### Plot 1
 
@@ -127,7 +219,8 @@ ggplot(churnNN, aes(x = Credit_Limit, fill = Income_Category)) +
   geom_histogram(data = churnNN[,-8], fill = "grey", alpha = .5) + 
   geom_histogram(colour = "black") +
   facet_wrap(~ Income_Category) + 
-  guides(fill = FALSE)
+  guides(fill = FALSE) +
+  xlab("Credit Limit on the Credit Card")
   
 
 ```
@@ -137,7 +230,9 @@ ggplot(churnNN, aes(x = Total_Revolving_Bal, fill = Attrition_Flag)) +
   geom_histogram(data = churnNN[,-1], fill = "grey", alpha = .5) + 
   geom_histogram(colour = "black") +
   facet_wrap(~ Attrition_Flag) + 
-  guides(fill = FALSE)
+  guides(fill = FALSE) +
+  xlab("Total Revolving Balance on the Credit Card")+
+  ylab("Number of Customers")
   
 
 ```
