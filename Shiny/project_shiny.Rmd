@@ -172,7 +172,7 @@ p1<- ggplot(churnNN, aes(x = Income_Category)) +
                 label = paste0(round(prop.table(..count..),4) * 100, '%')), 
             stat = 'count', 
             position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
 ggplotly(p1)
 ```
 
@@ -185,7 +185,7 @@ p2<-ggplot(churnNN, aes(x = Card_Category)) +
                 label = paste0(round(prop.table(..count..),4) * 100, '%')), 
             stat = 'count', 
             position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
 ggplotly(p2)
 
 ```
@@ -202,7 +202,7 @@ p3<- ggplot(churnNN, aes(x = Education_Level)) +
                 label = paste0(round(prop.table(..count..),4) * 100, '%')), 
             stat = 'count', 
             position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
 ggplotly(p3)
 
 ```
@@ -216,7 +216,7 @@ p4<-ggplot(churnNN, aes(x = Marital_Status)) +
                 label = paste0(round(prop.table(..count..),4) * 100, '%')), 
             stat = 'count', 
             position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
 ggplotly(p4)
 ```
 
@@ -228,7 +228,7 @@ Row
 
 ### Existing Customer
 ```{r Existing}
-ex <- ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers")+ theme(title = element_text(size=5))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ex <- ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers")+ theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e"))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
 
 ggplotly(ex)
 
@@ -237,7 +237,7 @@ ggplotly(ex)
 ### Attrited Customer
 
 ```{r Attrited}
-at <- ggplot(data =subset(churnNN, Attrition_Flag=="Attrited Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+ theme_gdocs() + ggtitle("Distrubiton of Age among Attrited Customers")+ theme(title = element_text(size=5))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+at <- ggplot(data =subset(churnNN, Attrition_Flag=="Attrited Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+ theme_gdocs() + ggtitle("Distrubiton of Age among Attrited Customers")+ theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e"))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
 
 ggplotly(at)
 ```
@@ -252,16 +252,21 @@ library(gridExtra)
 library(grid)
 
 churn_ex <- subset(churnNN, Attrition_Flag=="Existing Customer")
-
+colors <- c("#1f77b4","#ff7f0e" ,"#2ca02c", "#d62728", "#9467bd")
 fig <- plot_ly()
 fig <- fig %>% add_pie(data = count(churn_ex, Income_Category), labels = ~Income_Category, values = ~n,
-                       name = "Income Category", domain = list(row = 0, column = 0))
-fig <- fig %>% add_pie(data = count(churn_ex, Card_Category), labels = ~Card_Category, values = ~n,
-                       name = "Card Category", domain = list(row = 0, column = 1))
-fig <- fig %>% add_pie(data = count(churn_ex, Education_Level), labels = ~Education_Level, values = ~n,
-                       name = "Education Level", domain = list(row = 1, column = 0))
+                       textposition = 'inside', name = "Income Category", domain = list(row = 0, column = 0))
+
 fig <- fig %>% add_pie(data = count(churn_ex, Marital_Status), labels = ~Marital_Status, values = ~n,
-                       name = "Marital Status", domain = list(row = 1, column = 1))
+                       textposition = 'inside', name = "Marital Status", domain = list(row = 1, column = 1),
+                       marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
+fig <- fig %>% add_pie(data = count(churn_ex, Card_Category), labels = ~Card_Category, values = ~n, 
+                       textposition = 'inside', name = "Card Category", domain = list(row = 0, column = 1),
+                       marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
+fig <- fig %>% add_pie(data = count(churn_ex, Education_Level), labels = ~Education_Level, values = ~n,
+                       textposition = 'inside', name = "Education Level", domain = list(row = 1, column = 0),
+                       marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
+
 fig <- fig %>% layout(title = "Pie Charts with Subplots", showlegend = F,
                       grid=list(rows=2, columns=2),
                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -276,22 +281,26 @@ fig
 ```{r}
 
 churn_at <- subset(churnNN, Attrition_Flag=="Attrited Customer")
-
+colors <- c("#1f77b4","#ff7f0e" ,"#2ca02c", "#d62728", "#9467bd")
 fig1 <- plot_ly()
 fig1 <- fig1 %>% add_pie(data = count(churn_at, Income_Category), labels = ~Income_Category, values = ~n,
-                        name = "Income Category", domain = list(row = 0, column = 0))
+                         textposition = 'inside', name = "Income Category", domain = list(row = 0, column = 0))
 fig1 <- fig1 %>% add_pie(data = count(churn_at, Card_Category), labels = ~Card_Category, values = ~n,
-                        name = "Card Category", domain = list(row = 0, column = 1))
+                         textposition = 'inside', name = "Card Category", domain = list(row = 0, column = 1),
+                         marker = list(colors = colors,line = list(color = '#FFFFFF', width = 0.5)))
 fig1 <- fig1 %>% add_pie(data = count(churn_at, Education_Level), labels = ~Education_Level, values = ~n,
-                        name = "Education Level", domain = list(row = 1, column = 0))
+                         textposition = 'inside', name = "Education Level", domain = list(row = 1, column = 0),
+                         marker = list(colors = colors,line = list(color = '#FFFFFF', width = 1)))
 fig1 <- fig1 %>% add_pie(data = count(churn_at, Marital_Status), labels = ~Marital_Status, values = ~n,
-                        name = "Marital Status", domain = list(row = 1, column = 1))
+                         textposition = 'inside', name = "Marital Status", domain = list(row = 1, column = 1),
+                         marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
 fig1 <- fig1 %>% layout(title = "Pie Charts with Subplots", showlegend = F,
                        grid=list(rows=2, columns=2),
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 
 fig1
+
 ```
 
 Analysis Part 3
