@@ -320,76 +320,86 @@ Row
 
 ### Total Revolving Balance by Education Level
 ```{r}
-my_comp <- list( c("Uneducated", "High School"), c("High School", "College"), c("College", "Graduate"), c("Graduate", "Post-Graduate"), c("Post-Graduate", "Doctorate") )
 
-ggviolin(churnNN, x = "Education_Level", y = "Total_Revolving_Bal",
-         fill = "Education_Level", palette = "jco",
-         add = "boxplot", add.params = list(fill = "white"))  + 
-  stat_compare_means(method = 'anova') +
-  stat_compare_means(comparisons = my_comp)
+fig2 <- churnNN %>%
+  plot_ly(type = 'violin') 
+fig2 <- fig2 %>%
+  add_trace(
+    x = ~Education_Level[churnNN$Attrition_Flag == 'Attrited Customer'],
+    y = ~Total_Revolving_Bal[churnNN$Attrition_Flag == 'Attrited Customer'],
+    legendgroup = 'AC',
+    scalegroup = 'AC',
+    name = 'Attrited',
+    side = 'negative',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    ),
+    color = I("#ff7f0e")
+  ) 
+fig2 <- fig2 %>%
+  add_trace(
+    x = ~Education_Level[churnNN$Attrition_Flag == 'Existing Customer'],
+    y = ~Total_Revolving_Bal[churnNN$Attrition_Flag == 'Existing Customer'],
+    legendgroup = 'EC',
+    scalegroup = 'EC',
+    name = 'Existing',
+    side = 'positive',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    ),
+    color = I("#1f77b4")
+  ) 
+
+fig2 <- fig2 %>%
+  layout(
+    xaxis = list(
+      title = "Education Level"  
+    ),
+    yaxis = list(
+      title = "Total Revolving Balance",
+      zeroline = F
+    ),
+    violingap = 0,
+    violingroupgap = 0,
+    violinmode = 'overlay'
+  )
+
+fig2
+
+
 ```
+
 
 ### Total Revolving Balance on the Credit Card
 ```{r}
-ggplot(churnNN, aes(x = Total_Revolving_Bal, fill = Attrition_Flag)) + 
-  geom_histogram(data = churnNN[,-1], fill = "grey", alpha = .5) + 
-  geom_histogram(colour = "black") +
-  facet_wrap(~ Attrition_Flag) + 
-  guides(fill = FALSE) +
-  xlab("Total Revolving Balance on the Credit Card")+
-  ylab("Number of Customers")
+
+fig3 <- churnNN %>%
+  plot_ly(alpha = 0.6)
+fig3 <- fig3 %>% add_histogram(x = ~Total_Trans_Ct[churnNN$Attrition_Flag != 'Attrited Customer'],
+                                name = 'Existing', color = I("#1f77b4"))
+fig3 <- fig3 %>% add_histogram(x = ~Total_Trans_Ct[churnNN$Attrition_Flag == 'Attrited Customer'],     name = 'Attrited', color = I("#ff7f0e"))
+fig3 <- fig3 %>% layout(barmode = "overlay")
+
+fig3 <- fig3 %>%
+  layout(
+    xaxis = list(
+      title = "Total Transaction Count(12 Months)"  
+    ),
+    yaxis = list(
+      title = "Number of customer"
+    )
+  )
+fig3
+
 ```
-
-Row 
------------------------------------------------------------------------
-
-### Credit Limit on the Credit Card
-```{r}
-ggplot(churnNN, aes(x = Credit_Limit, fill = Income_Category)) + 
-  geom_histogram(data = churnNN[,-7], fill = "grey", alpha = .5) + 
-  geom_histogram(colour = "black") +
-  facet_wrap(~ Income_Category) + 
-  guides(fill = FALSE) +
-  xlab("Credit Limit on the Credit Card")
-```
-
-### Trend
-```{r}
-sct <- ggplot(churnNN,aes(Customer_Age,Credit_Limit))+ geom_point() +geom_smooth()
-sct+theme_gdocs()
-```
-
 
 Analysis Part 4
-================================
-
-### Correlation 
-
-```{r}
-churncor <- churnNN[sapply(churnNN, is.numeric)]
-x <- cor(churncor)
-
-corplot <- hchart(x) %>% 
-  hc_legend(layout = "vertical",
-            align = "right",
-            verticalAlign = "bottom") %>% 
-  hc_plotOptions(
-    series = list(
-      dataLabels = list(
-        enabled = TRUE,
-        formatter = JS("function(){
-                                   return Highcharts.numberFormat(this.point.value, 2);
-                                   }"))))
-corplot
-
-```
-### Regression 
-
-```{r}
-
-```
-
-Can'in Yeri
 ================================
 
 ```{r}
@@ -433,7 +443,7 @@ htc <- reactive({
         htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Card_Category, value = Average_credit, color = Average_credit))
       } 
       htc  %>% hc_title(text = paste("Average Credit Limit based on",input$grp)) %>%   hc_add_theme(hc_theme_google()) %>% hc_credits(enabled = TRUE, text = "", style = list(fontSize = "10px")) %>%
-        hc_colorAxis(minColor = "#32CD32", maxColor = "#00008B")}) 
+        hc_colorAxis(minColor = "#ff7f0e", maxColor = "#1f77b4")}) 
 
   
 
@@ -445,4 +455,101 @@ htc <- reactive({
 
 shinyApp(ui, server)
 ```
+
+Analysis Part 5
+================================
+
+```{r}
+churncor <- churnNN[sapply(churnNN, is.numeric)]
+x <- cor(churncor)
+
+corplot <- hchart(x) %>% 
+  hc_legend(layout = "vertical",
+            align = "right",
+            verticalAlign = "bottom") %>% 
+  hc_plotOptions(
+    series = list(
+      dataLabels = list(
+        enabled = TRUE,
+        formatter = JS("function(){
+                                   return Highcharts.numberFormat(this.point.value, 2);
+                                   }"))))
+
+```
+
+
+
+```{r}
+
+ui <- dashboardPage(skin = "black",
+                    dashboardHeader(disable = TRUE),
+                    dashboardSidebar(disable = TRUE),
+                    dashboardBody(
+    tags$head(
+      tags$style(HTML("body {overflow-y: hidden;}"))
+
+  ), column(9, corplot),
+                        column(3,
+                            dropdown(
+                              tags$h3("List of Input"),
+                              
+                              pickerInput(inputId = 'var1',
+                                          label = 'X Variable',
+                                          choices = c("Customer_Age - Months_on_book",
+                                                      "Avg_Open_To_Buy - Credit_Limit",
+                                                      "Avg_Utilization_Ratio - Credit_Limit",
+                                                      "Avg_Utilization_Ratio - Total_Revolving_Bal",
+                                                      "Avg_Utilization_Ratio - Avg_Open_To_Buy",
+                                                      "Total_Trans_Ct - Total_Trans_Amt"),
+                                          selected = "Customer_Age - Months_on_book",
+                                          options = list(`style` = "btn-info")),
+                              
+                              
+                              style = "unite", icon = icon("gear"),
+                              status = "danger", width = "300px",
+                              tooltip = tooltipOptions(title = "Click to see inputs!"),
+                              animate = animateOptions(
+                                enter = animations$fading_entrances$fadeInRightBig,
+                                exit = animations$fading_exits$fadeOutRightBig
+                              )
+                            ) ,
+                            
+                            plotOutput("regplot")
+                        )
+                    )
+)
+# Server response
+server <- function(input, output) {
+
+  df <- churncor 
+    
+    ggObj <- reactive({
+      
+      varinputs <- strsplit(input$var1, " ")
+      var_1 <- varinputs[[1]][1]
+      var_2 <- varinputs[[1]][3]
+      var1 <- df[, which(colnames(df) == var_1)]
+      var2 <- df[, which(colnames(df) == var_2)]
+      dat <- tibble(var1 = var1, var2 = var2)
+      corR <- cor(x = var1, y = var2)
+      
+      fit <- lm(var2 ~ var1, data = dat)
+      dat$predicted <- predict(fit)
+      ggObj <- ggplot(data = dat, aes(x = var1, y = var2)) +
+        geom_point(color='#1F79B6', size = 1, fill = "#1F79B6") +
+        geom_smooth(method = "lm", se = FALSE, color = "#FE7F0E", size = 1) +
+        xlab(var_1) +
+        ylab(var_2) +
+        ggtitle(input$var1) +
+        theme(text=element_text(size=12), legend.position="right") +
+        theme_bw() 
+      ggObj
+        }
+      )
+    output$regplot <- renderPlot(plot(ggObj()))
+}
+
+shinyApp(ui, server)
+```
+
 
