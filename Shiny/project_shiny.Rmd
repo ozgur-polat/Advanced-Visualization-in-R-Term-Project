@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = FALSE)
 source("Vis_Project.R")
 ```
 
-Introductionn
+Introduction
 ================================
 
 ## Data Definition
