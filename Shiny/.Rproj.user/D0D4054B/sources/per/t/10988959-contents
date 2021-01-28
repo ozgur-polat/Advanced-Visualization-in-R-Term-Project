@@ -1,0 +1,194 @@
+#---------------------------------------------------------#
+#               Advanced Visualization in R               #
+#                   Piotr Ćwiakowski                      #
+#             Faculty of Economic Sciences UW             #
+#              Text and labels on the graph               #
+#---------------------------------------------------------#
+
+# Read database
+movies <- read.csv('Data/top250.csv',sep=';',dec=',')
+
+# Read ggplot2 lib
+library(ggplot2)
+library(dplyr)
+
+# 1. geom_text() ----------------------------------------------------------
+
+# Used to put text labels directly onto the plot. Most often it is done by
+# providing specific coordinates, e.g. names of countries which are put next
+# to graphical representation of their data or in our case, names of specific movies.
+
+# Let's use an example from the previous part.
+p2 <- ggplot(movies, aes(x = rank, # Sort by ranking on x axis
+                         y = p10*votes / 100, # Put number of '10's received on y
+                         color = (year > 2000))) + # Movies from XXI century with different color
+  geom_point() +
+  labs(y = 'Number of 10s received', x = 'Movie rank')
+
+# Add labels:
+p2 + geom_text(aes(label = title))
+
+# Not very useful -- we barely can see antything and the labels do not fit on a plot
+# Try to fit labs on the plot
+# Use parameters hjust i vjust for positioning
+# hjust - horizontal
+# vjust - vertical
+p2 + geom_text(aes(label = title), hjust = 0, vjust = 0)
+p2 + geom_text(aes(label = title), hjust = 0, vjust = 10)
+p2 + geom_text(aes(label = title), hjust = 0, vjust = -1)
+p2 + geom_text(aes(label = title), hjust = -0.5, vjust = 0)
+
+#The `hjust` parameter has one drawback - it's not given in absolute value but
+#in a value relative to the width of a textbox, that's why each textbox is shifted
+# by a different amout. Let's try to use `hjust` as an asethetic:
+p2 + geom_text(aes(label = title, hjust = -2/stringr::str_length(title)), vjust = 0)
+
+# Now address the former problem - we can barely see anything useful on the plot.
+# How could we describe only some specific points?
+# For example, if we are interested in a specific movie, we can manually restrict
+# the text aesthetic to only show that specific movie:
+p2 + geom_text(data = movies[movies$title == "Star Wars",],
+               aes(label = title),
+               hjust = 0, vjust = 0)
+
+# The same but now with only the XXI century movies:
+p2 + geom_text(data = movies[(movies$year > 2000),],
+               aes(label = title),
+               hjust = 0, vjust = 0)
+
+# Or maybe a movie with the largest number of 10s received:
+the.movie <- movies %>%
+  filter(p10*votes == max(p10*votes))
+
+p2 + geom_text(data = the.movie, aes(x = rank, label = title),
+               hjust = 0, vjust = 0)
+
+# *geom_text()* can also be used as a tool to add some useful annotations.
+# Text can be put manually in any place of the plot:
+p2 + geom_text(x = 4, y = 67200,         # Coordinates of the text box
+               hjust = 0, vjust = 0,      # Text justification
+               size = 4, color = "black", # Text size and colour
+               label = "<-- The movie with the most 10s") # Label
+
+# 2. geom_label() --------------------------------------------------------
+
+# Alternatively to geom_text() we can use geom_label() geometry.
+# This geometry is a little bit more complex - it has the `fill` aesthetics.
+# As such, there is more options in terms of formatting but it also can
+# add canvas and background:
+
+# install.packages('mlbench')
+library(mlbench)
+data("BostonHousing2")
+
+# Let's see the coloring with additional mapping of chas:
+b2 <- BostonHousing2 %>%
+  group_by(town, chas) %>%
+  summarise(nox = mean(nox),
+            medv = mean(medv))
+
+ggplot(data = b2, aes(x = nox, y = medv, color = chas)) +
+  geom_point() +
+  geom_label(aes(label = town), size = 2) + theme_minimal()
+
+# Color the background with the fill aesthetic:
+ggplot(data = b2, aes(x = nox, y = medv, fill = chas)) +
+  geom_point() +
+  geom_label(aes(label = town), size = 2) + theme_minimal()
+
+# Why not use a white font?:
+ggplot(data = b2, aes(x = nox, y = medv, fill = chas)) +
+  geom_point() +
+  geom_label(aes(label = town), size = 2, color = 'white')
+
+# 3. ggrepel --------------------------------------------------------------
+
+# In the above examples labels overlap a little and we can not see each
+# observation. We can do better! Let's try to scatter the arrows so that points do not overlap.
+
+# installation:
+install.packages("ggrepel")
+
+# Read the usual stuff
+library(ggrepel)
+
+# ggrepel demo: start with geom_text() example, reminder:
+ggplot(data = b2, aes(x = nox, y = medv)) +
+  geom_point() +
+  geom_text(aes(label = town), size = 3)
+
+# now the same but with ggrepel:
+ggplot(data = b2, aes(x = nox, y = medv)) +
+  geom_point() +
+  geom_text_repel(aes(label = town), size = 3)
+
+# Looks better, yup? If still in doubt -- let's try to put a trend on the plot
+ggplot(data = b2, aes(x = nox, y = medv)) +
+  geom_point() +
+  geom_smooth() +
+  geom_text_repel(aes(label = town), size = 3)
+
+# Once again geom_label_repel
+ggplot(data = b2, aes(x = nox, y = medv)) +
+  geom_point() +
+  geom_smooth(method = 'gam') +
+  geom_label_repel(aes(label = town), size = 2)
+
+# Now with colour:
+ggplot(data = b2, aes(x = nox, y = medv, color = chas)) +
+  geom_point() +
+  geom_label_repel(aes(label = town), size = 2) + theme_minimal()
+
+# Excercises -------------------------------------------------------------------
+# 1.
+
+#Let us consider the plot of budget vs the year of production:
+p <- ggplot(movies, aes(x = year, y = budget / 1000000, color = rating > mean(rating)))
+p + geom_point() 
+
+
+# Add the plot title and axis labels. Change the colour and sizes of fonts.
+# Put on the plot the title of a movie with the biggest budget.
+# Optionally, add grid lines and change the background colors.
+
+
+# 2. 
+# Using BostonHousing, prepare a map of boston towns - map lon on X axis, lat on Y
+# axis. Use different variables to map on size, shape, label and color of the points.
+# If necessary, aggregate data, to decrease the amount of points.
+
+
+
+rs4 <- churnNN %>% 
+  group_by(Customer_Age,Gender) %>% 
+  summarise(number = length(Customer_Age)) 
+
+final <- rs4 %>% 
+  arrange(Customer_Age, desc(Gender)) %>% 
+  group_by(Customer_Age) %>% 
+  mutate(label_sum = cumsum(number))
+
+ggplot(data = final, aes(x = factor(Customer_Age), y = number, fill = factor(Gender))) +
+  geom_bar(na.rm = TRUE, position = "stack", width = 0.7, stat = "identity") +
+  ggtitle('Gender and age in the sample') +
+  xlab('Age') +
+  ylab('Count') +
+  labs(fill = 'Gender') +
+  theme_minimal() +
+  geom_text(aes(label = label_sum), position = position_stack(),
+            vjust = -.5, color = "black", size = 3.5) +
+  scale_x_discrete(limits = c('35','36','37','38', '39','40','41','42','43','44','45','46','47','48','49','50','51','52','53'))
+
+
+# pyramid alternatifi hoca vermis
+ggplot(data = churnNN, aes(x = Customer_Age_Ordered, fill = Gender, y = Total_Revolving_Bal)) + 
+  geom_col(position = 'fill')
+
+ggplot(churnNN, aes(x = Customer_Age_Ordered, y = Total_Revolving_Bal, fill = Gender)) + 
+  geom_bar(stat = "identity", width = .6) +
+  scale_y_continuous(breaks = seq(-15000000, 15000000, 5000000),  
+                     labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")) +
+  labs(title="Email Campaign Funnel") + 
+  theme_tufte() +  
+  theme(plot.title = element_text(hjust = .5), axis.ticks = element_blank()) +   
+  scale_fill_brewer(palette = "Dark2")

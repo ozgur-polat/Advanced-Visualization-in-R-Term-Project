@@ -1,0 +1,509 @@
+#---------------------------------------------------------#
+#               Advanced Visualization in R               #
+#                     Piotr Ćwiakowski                    #
+#             Faculty of Economic Sciences UW             #
+#                Advanced Plots - overview                #
+#---------------------------------------------------------#
+
+# libraries (general)
+library(tidyverse)
+library(readxl)
+library(lubridate)
+
+# Datasets
+spare.time <- read.csv('Data/free_time.csv')
+bank <- read.csv('Data/bank-balanced.csv')
+foot <- read.csv('Data/footballers.csv', sep = ';')
+
+# for graphs
+# install.packages('ggcorrplot')
+# install.packages('ggpubr')
+# install.packages('treemapify')
+# install.packages('ggparallel')
+# install.packages("ggcharts")
+# install.packages("ggpol")
+
+# devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
+
+# 1. Heatmap -------------------------------------------------------------------
+ 
+# Heatmap can we used to present:
+# - aggregated data
+# - microdata (to compare single observations)
+# - correlations matrix
+
+# 1.1 Aggregates ---------------------------------------------------------------
+spare.agg <- spare.time %>% 
+  count(education, race)
+
+# Best way to present two way distribution is heatmap. In R we can achieve it with 
+# geom_tile():
+
+ggplot(spare.agg, aes(x = education, y = race)) + # nowa baza danych
+  geom_tile(aes(fill = n), color = 'white', show.legend = F) +
+  theme_minimal() + 
+  geom_text(aes(label = n), size = 5, fontface = 'bold', color = 'white') +
+  labs(title = 'Table 1. Interesing title.') +
+  theme(panel.grid = element_blank())
+
+# We can change colors:
+ggplot(spare.agg, aes(x = education, y = race)) + # nowa baza danych
+  geom_tile(aes(fill = n), color = 'black', show.legend = F) +
+  theme_minimal() + 
+  geom_text(aes(label = n), size = 5, fontface = 'bold', color = 'white') +
+  labs(title = 'Table 1. Interesing title.') +
+  scale_fill_gradient(low = 'green3', high = 'orange')
+
+# Or present it as ordinary table:
+ggplot(spare.agg, aes(x = education, y = race)) + # nowa baza danych
+  geom_tile(color = 'black', fill = 'white') +
+  theme_minimal() + 
+  geom_text(aes(label = n), size = 5, fontface = 'bold') +
+  labs(title = 'Table 1. Interesing title.') +
+  theme(panel.grid = element_blank())
+
+# Or:
+spare.agg <- spare.time %>% 
+  group_by(education, race) %>% 
+  summarise(n = n(),
+            earnings = mean(earnings, na.rm = T)) %>% 
+  mutate(earnings = round(earnings))
+
+ggplot(spare.agg, aes(x = education, y = race)) + # nowa baza danych
+  geom_tile(fill = 'white', color = 'black', show.legend = F) +
+  geom_point(aes(fill = earnings, size = n), shape = 21, color = 'black',
+             show.legend = F) +
+  theme_minimal() + 
+  geom_text(aes(label = earnings), size = 4, fontface = 'bold',
+            color = 'white') +
+  labs(title = 'Table 1. Interesing title.')+
+  theme(panel.grid = element_blank()) +
+  scale_size(range = c(10, 20))
+
+# 1.2. Microdata ---------------------------------------------------------------
+
+# Wczytanie danych
+nba <- read_xlsx('Data/dane_vis.xlsx', sheet = 'nba')
+
+# Transformacja danych
+nba <- gather(nba, Variable, Value,-Name)
+nba <- nba %>% 
+  group_by(Variable) %>% 
+  mutate(Value = scale(Value))
+head(nba)
+
+# Generujemy wykres
+ggplot(nba, aes(Variable, Name)) + 
+  geom_tile(aes(fill = Value), colour = "white") + 
+  scale_x_discrete("", expand = c(0, 0)) + 
+  scale_y_discrete("", expand = c(0, 0)) + 
+  theme_grey(base_size = 9) + 
+  theme(legend.position = "none",
+        axis.ticks = element_blank(), 
+        axis.text.x = element_text(angle = 330, hjust = 0))
+
+ggplot(nba, aes(Variable, Name)) + theme_grey(base_size = 9) + 
+  geom_tile(aes(fill = Value),colour = "white") + 
+  scale_fill_gradient2(low = "#006400", mid = "#f2f6c3", high = "#cd0000", midpoint = 0.5) +
+  theme(legend.title = element_blank(), legend.position = 'bottom',
+        axis.text.x = element_text(angle = 330, hjust = 0), axis.title = element_blank())
+
+
+# Definiujemy nową zmienną:
+nba %>% mutate(Category = case_when(Variable %in% c("PTS", "FGM", "FGA", "_3PM", "_3PA", "AST") ~ "Offensive",
+                                     Variable %in% c("DRB", "ORB", "STL") ~ "Defensive",
+                                     Variable %in% c("G", "MIN", "FGP", "FTM", "FTA", "FTP", "_3PP", 
+                                                    "TRB", "BLK", "TO", "PF") ~ "Other"
+)
+) -> nba
+nba$Category <- as.factor(nba$Category)
+
+# Changing the center value for each Category
+nba$Value.cat <- nba$Value + 100*(as.numeric(nba$Category)-1)
+
+# Determine limits for each gradient scale
+gradientends <- range(nba$Value) + rep(c(0, 100, 200), each = 2)
+
+# Sort Variables by category, in order to have different variables of the same next to each other
+nba$Variable <- reorder(nba$Variable, as.numeric(nba$Category))
+
+# Chart:
+ggplot(nba, aes(Variable, Name)) + 
+  geom_tile(aes(fill = Value.cat), colour = "white") + 
+  scale_fill_gradientn(colours = c("white", "red", "white", "green", "white", "blue"), 
+                       values = scales::rescale(gradientends)) + 
+  scale_x_discrete("", expand = c(0, 0)) + 
+  scale_y_discrete("", expand = c(0, 0)) + 
+  theme_grey(base_size = 9) + 
+  theme(legend.position = "none",
+        axis.ticks = element_blank(), 
+        axis.text.x = element_text(angle = 330, hjust = 0))
+# Źródło: https://learnr.wordpress.com/2010/01/26/ggplot2-quick-heatmap-plotting/
+
+# 1.3 Correlation matrix -------------------------------------------------------
+library(ggcorrplot)
+
+corr <- cor(foot %>% select(market_value, popularity, contains('goals')))
+
+# Podstawowy korelogram
+ggcorrplot(corr, hc.order = TRUE, type = "lower", lab = TRUE)
+ggcorrplot(corr, hc.order = TRUE, type = "lower", lab = TRUE, method = 'circle', 
+           lab_size = 3)
+ggcorrplot(corr, hc.order = TRUE, type = "lower", lab = TRUE,
+           outline.col = "white", colors = c("#6D9EC1", "white", "#E46726"))
+
+p.mat <- cor_pmat(foot %>% select(market_value, popularity, contains('goals')))
+ggcorrplot(corr, hc.order = TRUE, type = "lower", lab = TRUE, p.mat = p.mat,
+           insig = 'blank')
+
+ggcorrplot(corr, hc.order = TRUE, type = "lower", lab = TRUE, p.mat = p.mat,
+           insig = 'pch', pch.cex = 7)
+
+# More information:
+# * [corrgram](https://www.statmethods.net/advgraphs/correlograms.html)
+# * [corrplot](http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram)
+# * [ggally](https://www.r-graph-gallery.com/199-correlation-matrix-with-ggally/)
+# * [ggcorr](https://briatte.github.io/ggcorr/)
+# * [corrr](https://cran.r-project.org/web/packages/corrr/vignettes/using-corrr.html)
+
+# 2. Advanced Barplot ----------------------------------------------------------
+
+# 2.1 Dotchart -----------------------------------------------------------------
+library(ggpubr)
+
+dfm <- mtcars %>% 
+  mutate(cyl = as.factor(cyl),
+         name = rownames(.))
+
+ggdotchart(dfm, x = "name", y = "mpg", color = "cyl",                                
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+           sorting = "descending",                       
+           rotate = TRUE,                                
+           dot.size = 2,                                
+           y.text.col = TRUE) + 
+  theme_cleveland()  
+
+# 2.2 Deviation graph ----------------------------------------------------------
+
+# Corr Matrix
+df <- round(cor(foot[,-24])[1,-1]*100,2) %>%  # corr all vars with market_value
+  data.frame(ro = ., 
+             x = names(.),
+             magn = ifelse(. < 0, 'neg', 'pos')) %>% 
+  mutate(x = reorder(x, ro))
+
+ggplot(df, aes(x = x, y = ro, fill = magn)) +
+  geom_col() + coord_flip() + theme_void() +
+  theme(legend.position = 'none') +
+  geom_text(aes(label = x, hjust = ifelse(magn == 'neg', -.1, 1.1), y = 0)) +
+  geom_text(aes(label = ro, hjust = ifelse(magn == 'neg', -.1, 1.1)), size = 2.8, color = 'white')
+
+# 2.3 Barplot with variable width
+clusters <- data.frame(xmin = c(0,5,7,18), ymin = c(0,0,0,0),
+                       xmax = c(5,7,18,22),ymax = c(8,12,5,10),
+                       label = factor(c('1st cluster', '2nd cluster', '3rd cluster', '4th cluster')))
+
+ggplot(clusters) + 
+  geom_rect(aes(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax,
+                fill = (xmax - xmin)*(ymax - ymin)),
+                       color = 'grey78', alpha = .7) + 
+  theme_minimal() + theme(legend.position = 'top') +
+  geom_label(aes(y = ymax, label = paste0((xmax - xmin)*(ymax - ymin), " mln"), 
+                 x = xmin + (xmax - xmin)/2), size = 8) +
+  geom_label(aes(y = 1, x = xmin + (xmax - xmin)/2,
+                 label = paste0('Segment: ', 1:4))) +
+  labs(title = 'Revenues by client segments', x = 'Number of clients [mln]', 
+       y = 'Average monthly fee', fill = 'Revenues [mln]') +
+  scale_fill_viridis_c(guide = guide_colorbar(barwidth = 20))
+
+# 2.4. Lolipop chart -----------------------------------------------------------
+
+ggplot(df, aes(ro, x, color = magn, label = paste0(round(ro, 1), "%"))) + 
+  geom_segment(aes(x = 0, y = x, xend = ro, yend = x), color = "grey50") + 
+  geom_point(size = 10, show.legend = F)  +
+  geom_text(color = "black", size = 2.5) + 
+  theme_minimal()
+
+# 2.5. Waterfall chart ---------------------------------------------------------
+
+# Data
+balance <- data.frame(desc = c("Starting Cash", "Sales", "Refunds", "Payouts", "Court Losses", "Court Wins", "Contracts", "End Cash"), 
+                      amount = c(2000, 3400, -1100, -100, -6600, 3800, 1400, 2800))
+# Data preparation
+balance$id <- 1:8 
+balance$desc <- reorder(balance$desc, balance$id) 
+balance$type <- ifelse(balance$amount > 0, "in","out") 
+balance$type[c(1,8)] <- "net" 
+balance$end <- cumsum(balance$amount)
+balance$end <- c(balance$end[1:7], 0)
+balance$start <- c(0, balance$end[1:7])
+balance
+
+# Zamiana spacji na entery (w etykietach X):
+strwr <- function(str) gsub(" ", "\n", str)
+
+ggplot(balance, aes(x = desc, fill = type)) + 
+  geom_rect(aes(xmin = id - 0.45, 
+                xmax = id + 0.45, 
+                ymin = start, 
+                ymax = end)) + 
+  scale_x_discrete("", labels = strwr(levels(balance$desc))) + 
+  theme_minimal() +
+  theme(legend.position = "none", panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) +
+  scale_fill_manual(values = c('darkgreen', 'dodgerblue', 'red2')) +
+  scale_y_continuous(breaks = seq(-3000, 6000, by = 500))
+# Źródło: https://learnr.wordpress.com/2010/05/10/ggplot2-waterfall-charts/
+
+# 2.6. Pyramid chart
+library(ggcharts)
+library(ggthemes)
+
+data("popch")
+popch
+options(scipen = 10)
+pyramid_chart(data = popch, x = age, y = pop, group = sex) 
+
+# Alternative:
+ggplot(data = popch, aes(x = age, fill = sex, y = pop)) + 
+  geom_col(position = 'fill')
+
+# https://cran.r-project.org/web/packages/ggmosaic/vignettes/ggmosaic.html
+
+options(scipen = 999)
+# Read data
+email_campaign_funnel <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/email_campaign_funnel.csv")
+
+# Plot
+ggplot(email_campaign_funnel, aes(x = Stage, y = Users, fill = Gender)) + 
+  geom_bar(stat = "identity", width = .6) +
+  scale_y_continuous(breaks = seq(-15000000, 15000000, 5000000),  
+                     labels = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")) +
+  coord_flip() + labs(title="Email Campaign Funnel") + 
+  theme_tufte() +  
+  theme(plot.title = element_text(hjust = .5), axis.ticks = element_blank()) +   
+  scale_fill_brewer(palette = "Dark2")
+
+
+# 3. Treemap -------------------------------------------------------------------
+library(treemapify)
+
+# Data
+data(G20)
+
+ggplot(G20, aes(area = gdp_mil_usd, fill = hdi, label = country)) +
+  geom_treemap() +
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre",
+                    grow = F) + 
+  labs(title = "GDP and HDI of G20 countries") +
+  scale_fill_gradient(guide = guide_colorbar(barheight = 20))
+
+# 4. Multiple variables --------------------------------------------------------
+
+# 4.1 ggradar ------------------------------------------------------------------
+library(ggradar)
+
+mtcars %>%
+  rownames_to_column(var = "group" ) %>%
+  mutate_at(vars(-group), scales::rescale) %>%
+  tail(4) %>% select(1:10) -> mtcars_radar
+
+ggradar(mtcars_radar) 
+
+# 4.2 Parallel chart (for discrete variables)
+library(ggparallel)
+
+titanic <- as.data.frame(Titanic)
+
+ggparallel(names(titanic)[c(1, 4, 2, 1)], order = 0, titanic, weight = "Freq") +
+  scale_fill_brewer(palette = "Paired", guide = "none") +
+  scale_colour_brewer(palette = "Paired", guide = "none") + 
+  theme_minimal()
+
+library(ggalluvial)
+ggplot(data = titanic,
+       aes(axis1 = Class, axis2 = Sex, axis3 = Age,
+           y = Freq)) +
+  scale_x_discrete(limits = c("Class", "Sex", "Age"), expand = c(.2, .05)) +
+  xlab("Demographic") +
+  geom_alluvium(aes(fill = Survived)) +
+  geom_stratum() +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  theme_minimal() +
+  ggtitle("passengers on the maiden voyage of the Titanic",
+          "stratified by demographics and survival")
+
+# 4.2. Parallel chart (for continous variables) --------------------------------
+library(GGally)
+
+foot2 <- foot %>% 
+  top_n(market_value, n = 3) 
+  
+
+ggparcoord(foot2, columns=c(1, 5:10), groupColumn = 24) +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_line(colour="grey70"))
+
+ggparcoord(foot2, columns=c(1, 5:10), groupColumn = 24,
+           mapping = aes(size = 1)) +
+  scale_size_identity() +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_line(colour="grey70"))
+
+# 4.3 Rose plot
+
+# Data generation
+set.seed(44)
+N = 500
+
+# Simulating number of events
+events <- as.POSIXct("2011-01-01", tz = "GMT") + days(floor(365*runif(N))) + 
+           hours(floor(24*rnorm(N))) + minutes(floor(60*runif(N))) + seconds(floor(60*runif(N)))
+
+# conversion to df
+eventdata <- data.frame(datetime = events, 
+                        eventhour = hour(events)) %>% 
+  mutate(Workday = eventhour %in% seq(9, 17))
+
+# Visualisation
+ggplot(eventdata, aes(x = eventhour, fill = Workday)) + 
+  geom_histogram(breaks = seq(0, 24),  colour = "grey") +
+  coord_polar(start = 0) + theme_minimal() + 
+  scale_fill_brewer() + 
+  ylab("Count") + 
+  ggtitle("Events by Time of day") + 
+  scale_x_continuous("", limits = c(0, 24), breaks = seq(0, 24), labels = seq(0,  24))
+# Source: https://stackoverflow.com/questions/17266780/wind-rose-with-ggplot-r
+
+# 5. Waffle chart --------------------------------------------------------------
+
+# Data preparation
+data(mpg)
+dim(mpg)
+help(mpg)
+
+# Variable to present:
+var <- mpg$class 
+table(var)
+
+# 6 classes, 234 obs.
+
+# Preparing grid with 100 rectangles:
+df <- expand.grid(y = 1:10, x = 1:10)
+
+# Now we need to rescale 234 obs into 100 (carefully)
+categ_table <- round(table(var) * ((10*10)/(length(var))))
+sum(categ_table)
+
+# Now we know, how many rectangles each category occupies:
+df$Categories <- factor(rep(names(categ_table), categ_table))  
+
+# Visualisation-- Waffle Chart
+ggplot(df, aes(x = x, y = y, fill = Categories)) + 
+  geom_tile(color = "black", size = 0.5) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0), trans = 'reverse') +
+  scale_fill_brewer(palette = "Set3") +
+  labs(title="Waffle Chart", subtitle="Car types distribution",
+       caption="Źródło: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html") + 
+  theme_void() +
+  theme(plot.margin = unit(c(0.2, 0.1, 0.2, .1), units = 'in'))
+
+# 6. Ilustrating elections results ---------------------------------------------
+library("ggpol")
+
+bt <- data.frame(
+  parties = factor(c("CDU", "CSU", "AfD", "FDP", "SPD", 
+                     "Linke", "Gruene", "Fraktionslos"),
+                   levels = c("CDU", "CSU", "AfD", "FDP", "SPD", 
+                              "Linke", "Gruene", "Fraktionslos")),
+  seats   = c(200, 46, 92, 80, 153, 69, 67, 2),
+  colors  = c("black", "blue", "lightblue", "yellow", 
+              "red","purple", "green", "grey"),
+  stringsAsFactors = FALSE)
+
+ggplot(bt) + 
+  geom_parliament(aes(seats = seats, fill = parties), color = "black") + 
+  scale_fill_manual(values = bt$colors, labels = bt$parties) +
+  coord_fixed() + 
+  theme_void()
+
+# ------------------------------------------------------------------------------
+
+# Exercises
+
+# 1. Using bank-balanced dataset create deciles intervals for variable balance and 
+# duration. Create a heatmap, where binned duration and balance will be on horizon-
+# tal and vertical axis and tiles will be coloured according to probability of
+# opening deposit (deposit == Yes).
+# 
+# Data description available here: https://archive.ics.uci.edu/ml/datasets/Bank+Marketing
+bank <- read.csv('Data/bank-balanced.csv')
+
+
+ggplot(bank, aes(duration, balance)) + 
+  geom_tile(aes(fill = Value.cat), colour = "white") + 
+  scale_fill_gradientn(colours = c("white", "red", "white", "green", "white", "blue"), 
+                       values = scales::rescale(gradientends)) + 
+  scale_x_discrete("", expand = c(0, 0)) + 
+  scale_y_discrete("", expand = c(0, 0)) + 
+  theme_grey(base_size = 9) + 
+  theme(legend.position = "none",
+        axis.ticks = element_blank(), 
+        axis.text.x = element_text(angle = 330, hjust = 0))
+
+# 2. Using ggpol package create a visualisation of the last election in your home
+# country.
+library("ggpol")
+
+bt <- data.frame(
+  parties = factor(c("KORWiN", "Ruch Narodowy", "Grzegorz Braun", "PiS", "SP ZZ", 
+                     "Porozumienie", "PO", "Nowoczesna", "Zieloni", "MN",
+                     "Kukiz' 15", "UED", "PSL", "SLD", "Wiosna", "Razem"),
+                   levels = c("KORWiN", "Ruch Narodowy", "Grzegorz Braun", "PiS", "SP ZZ", 
+                              "Porozumienie", "PO", "Nowoczesna", "Zieloni", "MN",
+                              "Kukiz' 15", "UED", "PSL", "SLD", "Wiosna", "Razem")),
+  seats   = c(5, 5, 1, 199, 18, 18, 123, 8, 3, 1, 6, 4, 20, 24, 19, 6),
+  colors  = c("#E6E602", "#CCCC00", "#B3B300", "#002473","#006ABC","#0098F1", 
+              "#E69500","#FFAE1A", "#FFEDCC", "#5F4690", "#B2D8B2", "#7FBF7F",
+              "#329932", "#FF1919", "#FF6969", "#FFB2B2"),
+  stringsAsFactors = FALSE)
+
+ggplot(bt) + 
+  geom_parliament(aes(seats = seats, fill = parties), color = "#666666") + 
+  scale_fill_manual(values = bt$colors, labels = bt$parties) +
+  coord_fixed() + 
+  theme_void()
+
+
+
+
+# 3. What is the probability of opening deposit among different occupations?
+# Use dotchart to present results.
+
+library(ggpubr)
+
+deposit <- bank %>% 
+  mutate(cyl = as.factor(cyl),
+         name = rownames(.))
+
+colnames(bank)
+
+ggdotchart(bank, x = "job", y = "deposit", color = "deposit",                                
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+           sorting = "descending",                       
+           rotate = TRUE,                                
+           dot.size = 2,                                
+           y.text.col = TRUE) + 
+  theme_cleveland()  
+
+# 4. Create a pyramid plot of demographic structure of the population in your 
+# country.
+
+# I couldn't find the data of my country in a correct form and importing some other
+# source and trimming will be more costly in terms of time.
+options(scipen = 10)
+pyramid_chart(data = popch, x = age, y = pop, group = sex) 
+
+# 5. What is the distribution of different occupation in bank-marketing dataset
+# Prepare a waffle chart to present this distribution.

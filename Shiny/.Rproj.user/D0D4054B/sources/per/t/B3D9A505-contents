@@ -1,0 +1,357 @@
+---
+title: "ANZ"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cosmo
+    orientation: rows
+    vertical_layout: fill
+    source_code: embed
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(tidyr)
+library(leaflet)
+library(plotly)
+library(shinydashboard)
+library(lubridate)
+library(shiny)
+library(data.table)
+library(mltools)
+library(lubridate)
+library(flexdashboard)
+library(base)
+Sys.setlocale("LC_ALL", "English")
+
+df <- read_excel("ANZ synthesised transaction dataset.xlsx")
+summary(df)
+# check which columns contain missing values
+colnames(df)[colSums(is.na(df)) > 0]
+# seperate longtitude and langtitude of clients and merchants
+df <- separate(df, long_lat, into=c("long", "lat"), sep=" ")
+df$long <- gsub("c\\(", "", df$long)
+df$lat <- gsub("\\)", "", df$lat)
+df$long <- as.numeric(df$long)
+df$lat <- as.numeric(df$lat)
+
+df <- separate(df, merchant_long_lat, into=c("m_long", "m_lat"), sep=" ")
+df$m_long <-gsub("c\\(", "", df$m_long)
+df$m_lat <- gsub("\\)", "", df$m_lat)
+df$m_long <- as.numeric(df$m_long)
+df$m_lat <- as.numeric(df$m_lat)
+
+# check 
+df_temp <- df %>%
+  filter (!(long >114 & long <154 & lat > (-44) & lat < (-10))) 
+length(unique(df_temp$customer_id))
+unique(df_temp$customer_id)
+
+df %>% filter(customer_id=="CUS-1617121891") %>% dplyr::select(first_name)
+
+# change the format of the date column
+df$date<- as.Date(df$date,format = "%d/%m/%Y")
+
+
+# check whether there is missing date
+date_missing <- seq(min(df$date), max(df$date), by = 1)
+date_missing[!date_missing %in% df$date]
+
+# split date into month, day, week and hour
+df<- df %>%
+  dplyr::mutate(month = lubridate::month(date),
+                day=lubridate::day(date))
+df$month <- lubridate::month(df$month, label= TRUE, abbr=FALSE)
+
+df$extraction = as.character(df$extraction)
+df$hour = lubridate::hour(as.POSIXct(substr(df$extraction,12,19),format="%H:%M:%S"))
+df$weekday = base::weekdays(df$date)
+
+
+
+```
+
+
+Overview
+================================
+
+```{r}
+library(shinydashboard)
+avgtrans <- round(mean(df$amount),2)
+avg_bal <- mean(df$balance)
+avg_age <- trunc(mean(df$age))
+totaltrans <- sum(df$amount)
+# customers’average monthly transaction volume
+df5<- df %>%
+  group_by(customer_id) %>%
+  summarise(mon_avg_vol = round(n()/3,0))
+no_customer <- length(unique(df$customer_id))
+
+
+ui <- dashboardPage(skin = "black",
+                    dashboardHeader(disable = TRUE),
+                    dashboardSidebar(disable = TRUE),
+                    dashboardBody(
+    tags$head(
+      tags$style(HTML("body {overflow-y: hidden;}"))
+      #tags$style(HTML('.wrapper {height: auto !important; position:relative; overflow-x:hidden; overflow-y:hidden}')
+  ),
+                        fluidRow(
+                            valueBoxOutput("test_box", width = 5),
+                            valueBoxOutput("avgbal", width = 5),
+                            valueBoxOutput("avgage", width = 5),
+                            valueBoxOutput("totaltrans", width = 5),
+                            valueBoxOutput("customer", width = 5),
+                            valueBoxOutput("avg_vol", width = 5)
+                        )
+                    )
+)
+# Server response
+server <- function(input, output) {
+    output$test_box <- renderValueBox({
+            shinydashboard::valueBox("Average Transaction", value= avgtrans,
+                     icon = icon("chart-area"),
+                     color = "blue"
+        )
+    })
+    output$avgbal <- renderValueBox({
+      avg_bal %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Average Balance",
+                     icon = icon("balance-scale-right"),
+                     color = "purple"
+        )
+    })
+        output$avgage <- renderValueBox({
+            shinydashboard::valueBox(value = avg_age, "Average Age",
+                                     icon = icon("thumbs-up", lib = "glyphicon"),
+                                     color = "green"
+        )
+    })
+         output$totaltrans <- renderValueBox({
+           totaltrans %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Total Transaction",
+                                     icon = icon("chart-pie"),
+                                      color = "red"
+        )
+    })
+        output$customer <- renderValueBox({
+            shinydashboard::valueBox(value= no_customer, "Number of Customer",
+                     icon = icon("signal"),
+                     color = "navy"
+        )
+    })
+        output$avg_vol <- renderValueBox({
+        df5$mon_avg_vol %>%
+            sum() %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Customers’Average Monthly Transaction",
+                     icon = icon("flag"),
+                     color = "orange"
+        )
+    })
+}
+
+shinyApp(ui, server)
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Map
+
+```{r}
+# remove one customer who lives outside Australia
+df %>% 
+  filter(!customer_id=="CUS-1617121891") %>%
+  leaflet() %>%
+  addTiles() %>%
+  addProviderTiles(providers$Esri) %>%
+  addMarkers(lng= ~ long, lat= ~ lat, clusterOptions = markerClusterOptions())
+```
+
+### Movement
+ 
+```{r}
+ df %>%
+   select(date,movement) %>%
+   group_by(date,movement) %>%
+   summarise(daily_avg_vol = n()) %>%
+   group_by(movement) %>%
+   summarise(avg_vol=mean(daily_avg_vol,na.rm=TRUE )) %>% plot_ly(labels = ~movement, values= ~avg_vol) %>% add_pie(hole= 0.60)
+```
+
+### Gender
+
+```{r}
+fig <- df %>% count(gender)
+fig %>% plot_ly(labels = ~gender, values = ~n)  %>% add_pie(hole = 0.60)
+```
+
+Transaction Volume
+================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Average Transaction Volume By Month
+
+```{r}
+df4 <- df %>%
+  select(date,month) %>%
+  group_by(date,month) %>%
+  summarise(daily_avg = n()) %>%
+  group_by(month) %>%
+  summarise(avg_vol=mean(daily_avg,na.rm=TRUE ))
+e <- ggplot(df4,aes(x=month, y=avg_vol, fill=month))+
+  geom_bar(stat = "identity")+
+  theme_bw()+
+  labs(x='Month',y='Transaction volume')
+
+ggplotly(e)
+```
+
+
+### Reason of Transaction 
+```{r}
+byreason <- df %>% group_by(txn_description) %>% summarise(sum=sum(amount)) %>% select(c('txn_description', 'sum'))
+byreason$txn_description <- factor(byreason$txn_description, levels = unique(byreason$txn_description)[order(byreason$sum, decreasing = TRUE)])
+fig2 <- byreason %>% plot_ly(x = ~txn_description, y = ~sum, color = ~txn_description) 
+fig2 <- fig2 %>% layout(xaxis= list(title = "txn_description"),
+                      yaxis = list(title = "Amount"))
+fig2 
+```
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Average Transaction Volume by Hour
+
+```{r}
+df1 <- df %>%
+ group_by(date,hour) %>%
+ summarize(volume=n()) %>%
+ group_by(hour) %>%
+ summarize(per_hour = mean(volume,na.rm=TRUE))
+ c <- ggplot(df1,aes(x=hour,y=per_hour))+
+   geom_point()+
+   geom_line(aes(group = 1))+
+   theme_bw()+
+   labs(x='Hour',y='Transaction volume') 
+
+ ggplotly(c)
+```
+
+### Average Transaction Volume By Days of the Week
+```{r}
+df1 <- df %>%
+  select(date,weekday) %>%
+  group_by(date,weekday) %>%
+  summarise(daily_avg_vol = n()) %>%
+  group_by(weekday) %>%
+  summarise(avg_vol=mean(daily_avg_vol,na.rm=TRUE ))
+df1$weekday <- factor(df1$weekday, levels=c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+b<- ggplot(df1, aes(x=weekday, y=avg_vol)) +geom_point()+geom_line(aes(group = 1))+
+  theme_bw()+
+  labs(x='Weekday',y='Transaction volume')
+ggplotly(b)
+
+```
+
+### Average Transaction Volume By Days of Month
+```{r}
+df2 <- df %>%
+  select(date,day) %>%
+  group_by(date,day) %>%
+  summarise(daily_avg = n()) %>%
+  group_by(day) %>%
+  summarise(avg_vol=mean(daily_avg,na.rm=TRUE ))
+
+d <- ggplot(df2,aes(x=day, y=avg_vol)) +geom_point()+geom_line(aes(group = 1))+
+  theme_bw()+
+  labs(x='Day',y='Transaction volume')
+
+ggplotly(d)
+
+```
+
+
+Analysis
+================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Transaction Volume By Gender
+
+```{r}
+df %>% group_by(gender) %>% summarise(sum=sum(amount)/length(gender)) %>% select(c('gender', 'sum')) %>% 
+  plot_ly(labels = ~gender, values = ~sum)  %>% add_pie(hole = 0.60)
+
+```
+
+### Transaction Volume By Movement
+```{r}
+df %>% group_by(movement) %>% summarise(sum=sum(amount)) %>% select(c('movement', 'sum')) %>% 
+  plot_ly(labels = ~movement, values = ~sum) %>% add_pie(hole = 0.60)
+```
+
+### Transaction Volume by Each State
+
+```{r}
+state <- df %>% group_by(merchant_state) %>% summarise(sum=sum(amount)) %>% select(c('merchant_state', 'sum'))
+state$merchant_state <- factor(state$merchant_state, levels = unique(state$merchant_state)[order(state$sum, decreasing = TRUE)])
+fig <- state %>% plot_ly(x = ~merchant_state, y = ~sum, color = ~merchant_state) 
+fig <- fig %>% layout(xaxis= list(title = "State"),
+                      yaxis = list(title = "Amount"))
+fig 
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Average Balance by Age
+
+```{r}
+df %>% group_by(age) %>% summarise(sum=mean(balance)) %>% select(c('age', 'sum')) %>% 
+  plot_ly(x = ~age, y = ~sum, type = 'scatter', mode = 'lines')
+
+```
+
+Conclusion
+================================
+
+<br>
+<br>
+
+1. Average transaction volume by month is the highest in **September**.
+
+2. Average transaction volume by day of the week is the highest on **Friday**. The amount of transaction is remarkably low at the beginning of the week, on Monday.
+
+3. **17th day** of the month is the highest average transaction volume. Whereas, **16th day** of the month is the lowest average transaction volume.
+
+4. **The New South Wales** and **Tasmania** states have very high transaction amounts.
+
+5. Males' transaction volume is higher than females'.
+
+6. The majority of transactions are done from **Melbourne**, **Sydney**,**Brisbane** and **Perth**.
+
+7. Most of the transaction consist of Pay/Salary.
+
+8. | Average transactions done per month : |----|
+|------------|-------------|
+|August : | 185 |
+|September : | 182 |
+|October :| 196 |
+
+9. It should be given more attention for clients whose age is approximately between 45-46 and age 74-79.
+
+10. Average transaction volume by hour of the day is the highest at **9 am**. 
+
+
+
+

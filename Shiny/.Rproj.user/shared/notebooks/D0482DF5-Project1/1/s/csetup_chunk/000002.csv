@@ -1,0 +1,102 @@
+"0","knitr::opts_chunk$set(echo = FALSE)"
+"0","source(""Project.R"")"
+"2","package ‘raster’ was built under R version 3.6.3"
+"2","
+Attaching package: ‘raster’
+
+"
+"2","The following object is masked from ‘package:distributional’:
+
+    hdr
+
+"
+"2","The following object is masked from ‘package:ggpubr’:
+
+    rotate
+
+"
+"2","The following object is masked from ‘package:data.table’:
+
+    shift
+
+"
+"2","The following object is masked from ‘package:plotly’:
+
+    select
+
+"
+"2","The following object is masked from ‘package:glue’:
+
+    trim
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    extract
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    select
+
+"
+"2","package ‘knitr’ was built under R version 3.6.3"
+"2","package ‘kableExtra’ was built under R version 3.6.3"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"
+"2","package ‘gridExtra’ was built under R version 3.6.3"
+"2","
+Attaching package: ‘gridExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    combine
+
+"
+"2","package ‘wesanderson’ was built under R version 3.6.3"
+"2","New names:
+* `` -> ...2
+* `` -> ...3
+* `` -> ...4
+* `` -> ...5
+"
+"2","New names:
+* `` -> ...2
+* `` -> ...3
+* `` -> ...4
+* `` -> ...5
+"
+"2","New names:
+* `` -> ...2
+* `` -> ...3
+* `` -> ...4
+* `` -> ...5
+"
+"2","New names:
+* `` -> ...2
+* `` -> ...3
+* `` -> ...4
+* `` -> ...5
+"
+"2","`funs()` is deprecated as of dplyr 0.8.0.
+Please use a list of either functions or lambdas: 
+
+  # Simple named list: 
+  list(mean = mean, median = median)
+
+  # Auto named with `tibble::lst()`: 
+  tibble::lst(mean, median)
+
+  # Using lambdas
+  list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
+[90mThis warning is displayed once every 8 hours.[39m
+[90mCall `lifecycle::last_warnings()` to see where this warning was generated.[39m"
+"2","NAs introduced by coercion to integer range"

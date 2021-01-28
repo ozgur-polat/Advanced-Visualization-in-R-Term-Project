@@ -1,0 +1,21 @@
+"0","byreason <- df %>% group_by(txn_description) %>% summarise(sum=sum(amount)) %>% select(c('txn_description', 'sum'))"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"0","byreason$txn_description <- factor(byreason$txn_description, levels = unique(byreason$txn_description)[order(byreason$sum, decreasing = TRUE)])"
+"0","fig2 <- byreason %>% plot_ly(x = ~txn_description, y = ~sum, color = ~txn_description) "
+"0","fig2 <- fig2 %>% layout(xaxis= list(title = ""txn_description""),"
+"0","                      yaxis = list(title = ""Amount""))"
+"0","fig2 "
+"2","No trace type specified:
+  Based on info supplied, a 'bar' trace seems appropriate.
+  Read more about this trace type -> https://plot.ly/r/reference/#bar
+"
+"2","`arrange_()` is deprecated as of dplyr 0.7.0.
+Please use `arrange()` instead.
+See vignette('programming') for more help
+[90mThis warning is displayed once every 8 hours.[39m
+[90mCall `lifecycle::last_warnings()` to see where this warning was generated.[39m"
+"2","No trace type specified:
+  Based on info supplied, a 'bar' trace seems appropriate.
+  Read more about this trace type -> https://plot.ly/r/reference/#bar
+"

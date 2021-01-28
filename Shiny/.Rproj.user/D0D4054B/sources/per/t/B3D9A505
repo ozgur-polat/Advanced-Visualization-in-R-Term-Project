@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1611752504693.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1978257932",
+    "id" : "B3D9A505",
+    "lastKnownWriteTime" : 1611788736,
+    "last_content_update" : 1611788736812,
+    "path" : "C:/Users/izemd/Desktop/PROJECTS/Anz Bank Project/DataANZ.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "354,0",
+        "last_setup_crc32" : "38532CB2d510fb20",
+        "scrollLine" : "342"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

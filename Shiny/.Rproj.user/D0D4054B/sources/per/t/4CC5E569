@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1611745260929.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2336419921",
+    "id" : "4CC5E569",
+    "lastKnownWriteTime" : 1611788736,
+    "last_content_update" : 1611788736739,
+    "path" : "C:/Users/izemd/Desktop/Ozgur_Project/Vis_Project.R",
+    "project_path" : "Vis_Project.R",
+    "properties" : {
+        "cursorPosition" : "78,40",
+        "scrollLine" : "56",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

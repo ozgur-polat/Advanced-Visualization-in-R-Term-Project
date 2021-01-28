@@ -1,0 +1,16 @@
+"0","df1 <- df %>%"
+"0"," group_by(date,hour) %>%"
+"0"," summarize(volume=n()) %>%"
+"0"," group_by(hour) %>%"
+"0"," summarize(per_hour = mean(volume,na.rm=TRUE))"
+"2","`summarise()` regrouping output by 'date' (override with `.groups` argument)
+"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
+"0"," c <- ggplot(df1,aes(x=hour,y=per_hour))+"
+"0","   geom_point()+"
+"0","   geom_line(aes(group = 1))+"
+"0","   theme_bw()+"
+"0","   labs(x='Hour',y='Transaction volume') "
+"0",""
+"0"," ggplotly(c)"

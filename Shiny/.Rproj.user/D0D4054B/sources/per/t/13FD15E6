@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1611747071772.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "235918435",
+    "id" : "13FD15E6",
+    "lastKnownWriteTime" : 1593787439,
+    "last_content_update" : 1611783791118,
+    "path" : "C:/Users/izemd/OneDrive - Akademia Leona Kozminskiego/BDA/SEMESTER II/Data Processing and Security/Data Processing Project/Project1.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "293,29",
+        "last_setup_crc32" : "38532CB2b18248ee",
+        "scrollLine" : "283"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

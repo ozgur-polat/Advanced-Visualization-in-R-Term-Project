@@ -1,0 +1,430 @@
+---
+title: "Advanced Visualization in R Term Project"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cerulean
+    orientation: rows
+    vertical_layout: fill
+    source_code: embed
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+source("Vis_Project.R")
+```
+
+Introduction
+================================
+
+## Data Definition
+
+### It is the best to start with understanding the variables we have and their definitions.
+
+- **CLIENTNUM**: Client number. Unique identifier for the customer holding the account
+- **Attrition_Flag**: Internal event (customer activity) variable - if the account is closed then 1 else 0
+- **Customer_Age**: Demographic variable - Customer's Age in Years
+- **Gender**: Demographic variable - M=Male, F=Female
+- **Dependent_count**: Demographic variable - Number of dependents
+- **Education_Level**: Demographic variable - Educational Qualification of the account holder (example: high school, college graduate, etc.)
+- **Marital_Status**: Demographic variable - Married, Single, Divorced, Unknown
+- **Income_Category**: Demographic variable - Annual Income Category of the account holder (< $40K, $40K - 60K, $60K - $80K, $80K-$120K, > $120K, Unknown)
+- **Card_Category**: Product Variable - Type of Card (Blue, Silver, Gold, Platinum)
+- **Months_on_book**: Period of relationship with bank
+- **Total_Relationship_Count**:Total no. of products held by the customer
+- **Months_Inactive_12_mon**: No. of months inactive in the last 12 months
+- **Contacts_Count_12_mon**: No. of Contacts in the last 12 months
+- **Credit_Limit**: Credit Limit on the Credit Card
+- **Total_Revolving_Bal**:Total Revolving Balance on the Credit Card
+- **Avg_Open_To_Buy**: Open to Buy Credit Line (Average of last 12 months)
+- **Total_Amt_Chng_Q4_Q1**: Change in Transaction Amount (Q4 over Q1)
+- **Total_Trans_Amt**: Total Transaction Amount (Last 12 months)
+- **Total_Trans_Ct**: Total Transaction Count (Last 12 months)
+- **Total_Ct_Chng_Q4_Q1**: Change in Transaction Count (Q4 over Q1)
+- **Avg_Utilization_Ratio**: Average Card Utilization Ratio
+- **Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1**: Naive Bayes
+- **Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2**: Naive Bayes
+
+
+Overview
+================================
+
+```{r}
+library(shinydashboard)
+avgtrans <- round(mean(churnNN$Total_Trans_Amt),2)
+avg_lim <- mean(churnNN$Credit_Limit)
+avg_age <- trunc(mean(churnNN$Customer_Age))
+totaltrans <- sum(churnNN$Total_Trans_Amt)
+avg_rel <- round(mean(churnNN$Months_on_book),2)
+
+no_customer <- length(unique(churn$CLIENTNUM))
+
+
+ui <- dashboardPage(skin = "black",
+                    dashboardHeader(disable = TRUE),
+                    dashboardSidebar(disable = TRUE),
+                    dashboardBody(
+    tags$head(
+      tags$style(HTML("body {overflow-y: hidden;}"))
+
+  ),
+                        fluidRow(
+                            valueBoxOutput("customer", width = 4),
+                            valueBoxOutput("avgage", width = 4),
+                            valueBoxOutput("avg_rel", width = 4),                            
+                            valueBoxOutput("test_box", width = 4),
+                            valueBoxOutput("avglim", width = 4),
+                            valueBoxOutput("totaltrans", width = 4)
+                        )
+                    )
+)
+# Server response
+server <- function(input, output) {
+        output$customer <- renderValueBox({
+          no_customer %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Number of Customer",
+                     icon = icon("signal"),
+                     color = "navy"
+        )
+    }) 
+        output$avgage <- renderValueBox({
+            shinydashboard::valueBox(value = avg_age, "Average Customer Age",
+                                     icon = icon("thumbs-up", lib = "glyphicon"),
+                                     color = "green"
+        )
+    })
+        output$avg_rel <- renderValueBox({
+            shinydashboard::valueBox(value= avg_rel, "Average Period of Relationship",
+                     icon = icon("flag"),
+                     color = "orange"
+        )
+    })
+        output$test_box <- renderValueBox({
+          avgtrans %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Average Transaction",
+                     icon = icon("chart-area"),
+                     color = "blue"
+        )
+    })
+    output$avglim <- renderValueBox({
+      avg_lim %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Average Credit Limit",
+                     icon = icon("balance-scale-right"),
+                     color = "purple"
+        )
+    })
+         output$totaltrans <- renderValueBox({
+           totaltrans %>%
+            formatC(1:10 * 100000, format="d", big.mark=",") %>%
+            shinydashboard::valueBox("Total Transaction",
+                                     icon = icon("chart-pie"),
+                                      color = "red"
+        )
+    })
+}
+
+shinyApp(ui, server)
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Attrition Flag
+ 
+```{r}
+library(plotly)
+fig <- churnNN %>% count(Attrition_Flag)
+fig %>% plot_ly(labels = ~Attrition_Flag, values = ~n)  %>% add_pie(hole = 0.60)
+```
+
+
+### Gender
+
+```{r}
+fig1 <- churnNN %>% count(Gender)
+fig1 %>% plot_ly(labels = ~Gender, values = ~n)  %>% add_pie(hole = 0.60)
+```
+
+### Marital Status
+
+```{r}
+library(plotly)
+fig2 <- churnNN %>% count(Marital_Status)
+fig2 %>% plot_ly(labels = ~Marital_Status, values = ~n)  %>% add_pie(hole = 0.60)
+```
+
+
+Analysis
+================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Income Category
+
+```{r Income_Category}
+p1<- ggplot(churnNN, aes(x = Income_Category)) +
+  geom_bar(aes(fill = Attrition_Flag)) +
+  geom_text(aes(y = ..count.. -200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', 
+            position = position_dodge(.1), 
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ggplotly(p1)
+```
+
+### Card Category
+
+```{r Card_Category}
+p2<-ggplot(churnNN, aes(x = Card_Category)) +
+  geom_bar(aes(fill = Attrition_Flag)) +
+  geom_text(aes(y = ..count.. -200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', 
+            position = position_dodge(.1), 
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ggplotly(p2)
+
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Education Level
+
+```{r Education_Level}
+p3<- ggplot(churnNN, aes(x = Education_Level)) +
+  geom_bar(aes(fill = Attrition_Flag)) +
+  geom_text(aes(y = ..count.. -200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', 
+            position = position_dodge(.1), 
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ggplotly(p3)
+
+```
+
+### Marital Status
+
+```{r Marital_Status}
+p4<-ggplot(churnNN, aes(x = Marital_Status)) +
+  geom_bar(aes(fill = Attrition_Flag)) +
+  geom_text(aes(y = ..count.. -200, 
+                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', 
+            position = position_dodge(.1), 
+            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ggplotly(p4)
+```
+
+
+Analysis Part 2
+================================
+Row 
+-----------------------------------------------------------------------
+
+### Existing Customer
+```{r Existing}
+ex <- ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers")+ theme(title = element_text(size=5))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+
+ggplotly(ex)
+
+```
+
+### Attrited Customer
+
+```{r Attrited}
+at <- ggplot(data =subset(churnNN, Attrition_Flag=="Attrited Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+ theme_gdocs() + ggtitle("Distrubiton of Age among Attrited Customers")+ theme(title = element_text(size=5))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+
+ggplotly(at)
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Existing Customer by Categorical Variables
+
+```{r}
+library(gridExtra)
+library(grid)
+
+churn_ex <- subset(churnNN, Attrition_Flag=="Existing Customer")
+
+fig <- plot_ly()
+fig <- fig %>% add_pie(data = count(churn_ex, Income_Category), labels = ~Income_Category, values = ~n,
+                       name = "Income Category", domain = list(row = 0, column = 0))
+fig <- fig %>% add_pie(data = count(churn_ex, Card_Category), labels = ~Card_Category, values = ~n,
+                       name = "Card Category", domain = list(row = 0, column = 1))
+fig <- fig %>% add_pie(data = count(churn_ex, Education_Level), labels = ~Education_Level, values = ~n,
+                       name = "Education Level", domain = list(row = 1, column = 0))
+fig <- fig %>% add_pie(data = count(churn_ex, Marital_Status), labels = ~Marital_Status, values = ~n,
+                       name = "Marital Status", domain = list(row = 1, column = 1))
+fig <- fig %>% layout(title = "Pie Charts with Subplots", showlegend = F,
+                      grid=list(rows=2, columns=2),
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+```
+
+### Attried Customer by Categorical Variables
+
+```{r}
+
+churn_at <- subset(churnNN, Attrition_Flag=="Attrited Customer")
+
+fig1 <- plot_ly()
+fig1 <- fig1 %>% add_pie(data = count(churn_at, Income_Category), labels = ~Income_Category, values = ~n,
+                        name = "Income Category", domain = list(row = 0, column = 0))
+fig1 <- fig1 %>% add_pie(data = count(churn_at, Card_Category), labels = ~Card_Category, values = ~n,
+                        name = "Card Category", domain = list(row = 0, column = 1))
+fig1 <- fig1 %>% add_pie(data = count(churn_at, Education_Level), labels = ~Education_Level, values = ~n,
+                        name = "Education Level", domain = list(row = 1, column = 0))
+fig1 <- fig1 %>% add_pie(data = count(churn_at, Marital_Status), labels = ~Marital_Status, values = ~n,
+                        name = "Marital Status", domain = list(row = 1, column = 1))
+fig1 <- fig1 %>% layout(title = "Pie Charts with Subplots", showlegend = F,
+                       grid=list(rows=2, columns=2),
+                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig1
+```
+
+Analysis Part 3
+================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Total Revolving Balance by Education Level
+```{r}
+my_comp <- list( c("Uneducated", "High School"), c("High School", "College"), c("College", "Graduate"), c("Graduate", "Post-Graduate"), c("Post-Graduate", "Doctorate") )
+
+ggviolin(churnNN, x = "Education_Level", y = "Total_Revolving_Bal",
+         fill = "Education_Level", palette = "jco",
+         add = "boxplot", add.params = list(fill = "white"))  + 
+  stat_compare_means(method = 'anova') +
+  stat_compare_means(comparisons = my_comp)
+```
+
+### Total Revolving Balance on the Credit Card
+```{r}
+ggplot(churnNN, aes(x = Total_Revolving_Bal, fill = Attrition_Flag)) + 
+  geom_histogram(data = churnNN[,-1], fill = "grey", alpha = .5) + 
+  geom_histogram(colour = "black") +
+  facet_wrap(~ Attrition_Flag) + 
+  guides(fill = FALSE) +
+  xlab("Total Revolving Balance on the Credit Card")+
+  ylab("Number of Customers")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Credit Limit on the Credit Card
+```{r}
+ggplot(churnNN, aes(x = Credit_Limit, fill = Income_Category)) + 
+  geom_histogram(data = churnNN[,-7], fill = "grey", alpha = .5) + 
+  geom_histogram(colour = "black") +
+  facet_wrap(~ Income_Category) + 
+  guides(fill = FALSE) +
+  xlab("Credit Limit on the Credit Card")
+```
+
+### Trend
+```{r}
+sct <- ggplot(churnNN,aes(Customer_Age,Credit_Limit))+ geom_point() +geom_smooth()
+sct+theme_gdocs()
+```
+
+
+Analysis Part 4
+================================
+
+### Correlation 
+
+```{r}
+churncor <- churnNN[sapply(churnNN, is.numeric)]
+x <- cor(churncor)
+
+corplot <- hchart(x) %>% 
+  hc_legend(layout = "vertical",
+            align = "right",
+            verticalAlign = "bottom") %>% 
+  hc_plotOptions(
+    series = list(
+      dataLabels = list(
+        enabled = TRUE,
+        formatter = JS("function(){
+                                   return Highcharts.numberFormat(this.point.value, 2);
+                                   }"))))
+corplot
+
+```
+### Regression 
+
+```{r}
+
+```
+
+Can'in Yeri
+================================
+
+```{r}
+
+ui <- dashboardPage(skin = "black",
+                    dashboardHeader(disable = TRUE),
+                    dashboardSidebar(disable = TRUE),
+                    dashboardBody(
+    tags$head(
+      tags$style(HTML("body {overflow-y: hidden;}"))
+
+  ),
+                        fluidRow(
+                            tags$b("Average Credit Limit"),
+                        awesomeRadio(inputId = "grp",
+                                                "Select Group:",
+                                                c("Attrition_Flag", "Gender","Education_Level", "Marital_Status", "Income_Category", "Card_Category"),
+                                                selected = c("Attrition_Flag"),
+                                                inline = TRUE,
+                                                status = "danger"
+                 ),highchartOutput("heatmap")
+                        )
+                    )
+)
+# Server response
+server <- function(input, output) {
+heat_attrition <-reactive({churnNN %>% group_by(.dots = input$grp) %>% summarise(Average_credit = round(mean(Credit_Limit)))%>% arrange(desc(Average_credit))})
+    
+htc <- reactive({
+      if(input$grp=="Attrition_Flag"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Attrition_Flag, value = Average_credit, color = Average_credit))
+      } else if(input$grp=="Gender"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Gender, value = Average_credit, color = Average_credit))
+      } else if(input$grp=="Education_Level"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Education_Level, value = Average_credit, color = Average_credit))
+      } else if(input$grp=="Marital_Status"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Marital_Status, value = Average_credit, color = Average_credit))
+      } else if(input$grp=="Income_Category"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Income_Category, value = Average_credit, color = Average_credit))
+      } else if(input$grp=="Card_Category"){
+        htc <- heat_attrition() %>% hchart(type = "treemap", hcaes(x = Card_Category, value = Average_credit, color = Average_credit))
+      } 
+      htc  %>% hc_title(text = paste("Average Credit Limit based on",input$grp)) %>%   hc_add_theme(hc_theme_google()) %>% hc_credits(enabled = TRUE, text = "", style = list(fontSize = "10px")) %>%
+        hc_colorAxis(minColor = "#32CD32", maxColor = "#00008B")}) 
+
+  
+
+    output$heatmap<- renderHighchart({
+      htc()
+    }
+    )
+}
+
+shinyApp(ui, server)
+```
+
