@@ -56,8 +56,7 @@ avg_lim <- mean(churnNN$Credit_Limit)
 avg_age <- trunc(mean(churnNN$Customer_Age))
 totaltrans <- sum(churnNN$Total_Trans_Amt)
 avg_rel <- round(mean(churnNN$Months_on_book),2)
-
-no_customer <- length(unique(churn$CLIENTNUM))
+no_customer <- nrow(churnNN)
 
 
 ui <- dashboardPage(skin = "black",
@@ -168,11 +167,12 @@ Row
 ```{r Income_Category}
 p1<- ggplot(churnNN, aes(x = Income_Category)) +
   geom_bar(aes(fill = Attrition_Flag)) +
-  geom_text(aes(y = ..count.. -200, 
-                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
-            stat = 'count', 
-            position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
+  geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), size = 3) + 
+  scale_fill_manual(values=c("#ff7f0e","#1f77b4")) + 
+  theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e")) +
+  labs(y="Count", x = "Income Category", fill = "Attrition Flag")
+
 ggplotly(p1)
 ```
 
@@ -181,11 +181,12 @@ ggplotly(p1)
 ```{r Card_Category}
 p2<-ggplot(churnNN, aes(x = Card_Category)) +
   geom_bar(aes(fill = Attrition_Flag)) +
-  geom_text(aes(y = ..count.. -200, 
-                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
-            stat = 'count', 
-            position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
+  geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), size = 3) + 
+  scale_fill_manual(values=c("#ff7f0e","#1f77b4")) + 
+  theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e")) +
+  labs(y="Count", x = "Card Category", fill = "Attrition Flag")
+
 ggplotly(p2)
 
 ```
@@ -198,11 +199,12 @@ Row
 ```{r Education_Level}
 p3<- ggplot(churnNN, aes(x = Education_Level)) +
   geom_bar(aes(fill = Attrition_Flag)) +
-  geom_text(aes(y = ..count.. -200, 
-                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
-            stat = 'count', 
-            position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
+  geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), 
+            size = 3) + scale_fill_manual(values=c("#ff7f0e","#1f77b4")) + 
+  theme_gdocs() + theme(axis.title = element_text(face = "bold", color = "#ff7f0e")) + 
+  labs(y="Count", x = "Education Level", fill = "Attrition Flag")
+
 ggplotly(p3)
 
 ```
@@ -212,11 +214,12 @@ ggplotly(p3)
 ```{r Marital_Status}
 p4<-ggplot(churnNN, aes(x = Marital_Status)) +
   geom_bar(aes(fill = Attrition_Flag)) +
-  geom_text(aes(y = ..count.. -200, 
-                label = paste0(round(prop.table(..count..),4) * 100, '%')), 
-            stat = 'count', 
-            position = position_dodge(.1), 
-            size = 3)+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))+ theme_gdocs()+ theme(axis.title = element_text(face = "bold", color = "#ff7f0e"))
+  geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+            stat = 'count', position = position_dodge(.1), 
+            size = 3) + scale_fill_manual(values=c("#ff7f0e","#1f77b4")) + 
+  theme_gdocs() + theme(axis.title = element_text(face = "bold", color = "#ff7f0e")) + 
+  labs(y="Count", x = "Marital Status", fill = "Attrition Flag")
+
 ggplotly(p4)
 ```
 
@@ -228,7 +231,10 @@ Row
 
 ### Existing Customer
 ```{r Existing}
-ex <- ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers")+ theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e"))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+ex <- ggplot(data =subset(churnNN, Attrition_Flag=="Existing Customer"), aes(x=Customer_Age,fill=Gender)) +
+  geom_bar() + theme_gdocs() + ggtitle("Distrubiton of Age among Existing Customers") + 
+  theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e")) + labs(y="Count", x = "Customer Age") +
+  scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
 
 ggplotly(ex)
 
@@ -237,7 +243,10 @@ ggplotly(ex)
 ### Attrited Customer
 
 ```{r Attrited}
-at <- ggplot(data =subset(churnNN, Attrition_Flag=="Attrited Customer"), aes(x=Customer_Age,fill=Gender)) + geom_bar()+ theme_gdocs() + ggtitle("Distrubiton of Age among Attrited Customers")+ theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e"))+scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
+at <- ggplot(data =subset(churnNN, Attrition_Flag=="Attrited Customer"), aes(x=Customer_Age,fill=Gender)) +
+  geom_bar() + theme_gdocs() + ggtitle("Distrubiton of Age among Attrited Customers") + 
+  theme(plot.title = element_text(color = "#1f77b4", size = 15),axis.title = element_text(face = "bold", color = "#ff7f0e")) + labs(y="Count", x = "Customer Age") +
+  scale_fill_manual(values=c("#ff7f0e","#1f77b4"))
 
 ggplotly(at)
 ```
