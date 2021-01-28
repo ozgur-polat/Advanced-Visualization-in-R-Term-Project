@@ -43,6 +43,8 @@ NA1 <- inspect_na(churnN)
 NA1
 show_plot(NA1)
 
+
+
 # remove NA values
 churnNN <- drop_na(churnN)
 sum(is.na(churnNN))
