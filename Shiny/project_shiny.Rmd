@@ -276,7 +276,7 @@ fig <- fig %>% add_pie(data = count(churn_ex, Education_Level), labels = ~Educat
                        textposition = 'inside', name = "Education Level", domain = list(row = 1, column = 0),
                        marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
 
-fig <- fig %>% layout(title = "Pie Charts with Subplots", showlegend = F,
+fig <- fig %>% layout(showlegend = F,
                       grid=list(rows=2, columns=2),
                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
@@ -303,7 +303,7 @@ fig1 <- fig1 %>% add_pie(data = count(churn_at, Education_Level), labels = ~Educ
 fig1 <- fig1 %>% add_pie(data = count(churn_at, Marital_Status), labels = ~Marital_Status, values = ~n,
                          textposition = 'inside', name = "Marital Status", domain = list(row = 1, column = 1),
                          marker = list(colors = colors, line = list(color = '#FFFFFF', width = 1)))
-fig1 <- fig1 %>% layout(title = "Pie Charts with Subplots", showlegend = F,
+fig1 <- fig1 %>% layout(showlegend = F,
                        grid=list(rows=2, columns=2),
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
