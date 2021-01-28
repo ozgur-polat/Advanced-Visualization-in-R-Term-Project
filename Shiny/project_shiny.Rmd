@@ -56,8 +56,7 @@ avg_lim <- mean(churnNN$Credit_Limit)
 avg_age <- trunc(mean(churnNN$Customer_Age))
 totaltrans <- sum(churnNN$Total_Trans_Amt)
 avg_rel <- round(mean(churnNN$Months_on_book),2)
-
-no_customer <- length(unique(churn$CLIENTNUM))
+no_customer <- nrow(churnNN)
 
 
 ui <- dashboardPage(skin = "black",
